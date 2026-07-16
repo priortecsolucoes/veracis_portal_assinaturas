@@ -1,0 +1,1 @@
+# veracis_portal_assinaturas
