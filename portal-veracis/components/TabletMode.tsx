@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { useStore } from '@/lib/store';
+import { getSocket } from '@/lib/socket';
 
 export default function TabletMode() {
   const {
@@ -77,6 +78,12 @@ export default function TabletMode() {
     const dataUrl = canvasRef.current.toDataURL('image/png');
     saveAssinatura(c.id, dataUrl);
     patchConsulta(c.id, { status: 'assinado' });
+    // Notify other devices (desktop) that signing is done
+    getSocket()?.emit('sign:done', {
+      consultaId: c.id,
+      assinaturaPngBase64: dataUrl,
+      hora: new Date().toISOString(),
+    });
     setTabletMode('done');
   }
 
@@ -86,6 +93,10 @@ export default function TabletMode() {
   }
 
   function cancelTablet() {
+    // Notify other devices (desktop) that signing was cancelled
+    if (c) {
+      getSocket()?.emit('sign:cancel', { consultaId: c.id });
+    }
     setTabletMode('off');
   }
 

@@ -2,6 +2,7 @@
 
 import { useStore } from '@/lib/store';
 import { ST } from '@/lib/types';
+import { getSocket } from '@/lib/socket';
 import StatusPill from './StatusPill';
 
 export default function GuiaDetail() {
@@ -9,10 +10,13 @@ export default function GuiaDetail() {
     consultas, selectedId, selectedRep,
     setTab, selectConsulta, selectRep,
     patchConsulta, saveAssinatura, assinaturas,
-    setTabletMode,
+    setTabletMode, startRemoteSigning,
+    devicesOnline,
     novoPacoteQtd, setNovoPacoteQtd,
     showToast, role,
   } = useStore();
+
+  const peerOnline = devicesOnline >= 2;
 
   const cRaw = selectedId ? consultas.find(x => x.id === selectedId) : selectedRep;
   if (!cRaw) return null;
@@ -227,9 +231,20 @@ export default function GuiaDetail() {
           {podeAssinar && !temAssinatura && (
             <div style={{ background:'#0A4A40', borderRadius:14, padding:'18px 20px', color:'#DFF1EA' }}>
               <div style={{ fontSize:15, fontWeight:800, color:'#FFFFFF' }}>Coletar assinatura</div>
-              <div style={{ fontSize:13, lineHeight:1.5, marginTop:6, opacity:0.8 }}>Confira os dados e entregue o tablet ao paciente. A tela entrará no modo de assinatura.</div>
+              <div style={{ fontSize:13, lineHeight:1.5, marginTop:6, opacity:0.8 }}>
+                {peerOnline
+                  ? 'Tablet conectado neste login — ao clicar, a tela de assinatura abrirá no tablet automaticamente.'
+                  : 'Confira os dados e entregue o tablet ao paciente. A tela entrará no modo de assinatura.'}
+              </div>
               <button
-                onClick={() => setTabletMode('signing')}
+                onClick={() => {
+                  if (peerOnline) {
+                    getSocket()?.emit('sign:request', { consultaId: c.id });
+                    startRemoteSigning(c.id);
+                  } else {
+                    setTabletMode('signing');
+                  }
+                }}
                 style={{ marginTop:14, width:'100%', padding:13, border:'none', borderRadius:10, background:'#2FA184', color:'#FFFFFF', fontFamily:'inherit', fontSize:14, fontWeight:800, cursor:'pointer' }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#3BB795')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '#2FA184')}

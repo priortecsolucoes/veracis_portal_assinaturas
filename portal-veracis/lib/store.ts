@@ -6,6 +6,7 @@ interface StoreState {
   // Auth
   isLoggedIn: boolean;
   role: Role;
+  userId: string;
   loginRole: Role;
   setLoginRole: (r: Role) => void;
   login: () => void;
@@ -28,10 +29,23 @@ interface StoreState {
   selectRep: (c: Consulta | null) => void;
 
   // Tablet signature mode
-  tabletMode: 'off' | 'signing' | 'done';
-  setTabletMode: (m: 'off' | 'signing' | 'done') => void;
+  // 'off'    — normal state
+  // 'signing' — this device shows the canvas signing screen
+  // 'done'   — signing completed locally, showing success screen
+  // 'remote' — desktop waiting for the tablet to sign (shows overlay)
+  tabletMode: 'off' | 'signing' | 'done' | 'remote';
+  setTabletMode: (m: 'off' | 'signing' | 'done' | 'remote') => void;
   assinaturas: Record<number, string>;
   saveAssinatura: (id: number, dataUrl: string) => void;
+
+  // Remote signing coordination
+  remoteSignConsultaId: number | null;
+  startRemoteSigning: (consultaId: number) => void;
+  clearRemoteSigning: () => void;
+
+  // Peer presence (from Socket.IO 'presence' event)
+  devicesOnline: number;
+  setDevicesOnline: (n: number) => void;
 
   // Novo pacote
   novoPacoteQtd: number;
@@ -62,10 +76,20 @@ interface StoreState {
 export const useStore = create<StoreState>((set, get) => ({
   isLoggedIn: false,
   role: 'recepcao',
+  userId: '',
   loginRole: 'recepcao',
   setLoginRole: (r) => set({ loginRole: r }),
-  login: () => set({ isLoggedIn: true, role: get().loginRole }),
-  logout: () => set({ isLoggedIn: false, tab: 'dashboard', selectedId: null, selectedRep: null, tabletMode: 'off' }),
+  login: () => set({ isLoggedIn: true, role: get().loginRole, userId: get().loginRole }),
+  logout: () => set({
+    isLoggedIn: false,
+    userId: '',
+    tab: 'dashboard',
+    selectedId: null,
+    selectedRep: null,
+    tabletMode: 'off',
+    remoteSignConsultaId: null,
+    devicesOnline: 0,
+  }),
 
   tab: 'dashboard',
   setTab: (t) => set({ tab: t }),
@@ -86,6 +110,13 @@ export const useStore = create<StoreState>((set, get) => ({
   assinaturas: {},
   saveAssinatura: (id, dataUrl) =>
     set((s) => ({ assinaturas: { ...s.assinaturas, [id]: dataUrl } })),
+
+  remoteSignConsultaId: null,
+  startRemoteSigning: (consultaId) => set({ tabletMode: 'remote', remoteSignConsultaId: consultaId }),
+  clearRemoteSigning: () => set({ tabletMode: 'off', remoteSignConsultaId: null }),
+
+  devicesOnline: 0,
+  setDevicesOnline: (n) => set({ devicesOnline: n }),
 
   novoPacoteQtd: 10,
   setNovoPacoteQtd: (n) => set({ novoPacoteQtd: n }),

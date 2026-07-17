@@ -11,8 +11,10 @@ export default function Dashboard() {
   const {
     consultas, filter, setFilter,
     patchConsulta, selectConsulta,
-    showToast, role,
+    showToast, role, devicesOnline,
   } = useStore();
+
+  const peerOnline = devicesOnline >= 2;
 
   const today = new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
   const todayLabel = today.charAt(0).toUpperCase() + today.slice(1);
@@ -73,9 +75,28 @@ export default function Dashboard() {
           <div style={{ fontSize:24, fontWeight:800 }}>Início</div>
           <div style={{ color:'#6B7A75', fontSize:14, marginTop:4 }}>{todayLabel} · Convênio Unimed</div>
         </div>
-        <div style={{ fontSize:13, color:'#6B7A75', background:'#FFFFFF', border:'1px solid #E5E3DD', borderRadius:9, padding:'9px 14px' }}>
-          Última sincronização FeeGow: hoje às 07:02
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+          {peerOnline && (
+            <div style={{
+              display:'flex', alignItems:'center', gap:7,
+              background:'#E3F2E8', border:'1px solid #BFDECB',
+              color:'#1D6B3C', borderRadius:9, padding:'7px 12px',
+              fontSize:13, fontWeight:700,
+            }}>
+              <span style={{ width:8, height:8, borderRadius:'50%', background:'#1D6B3C', display:'inline-block', animation:'pulseDot 1.6s ease infinite' }} />
+              Tablet conectado
+            </div>
+          )}
+          <div style={{ fontSize:13, color:'#6B7A75', background:'#FFFFFF', border:'1px solid #E5E3DD', borderRadius:9, padding:'9px 14px' }}>
+            Última sincronização FeeGow: hoje às 07:02
+          </div>
         </div>
+        <style>{`
+          @keyframes pulseDot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.25; }
+          }
+        `}</style>
       </div>
 
       {/* Summary cards */}
