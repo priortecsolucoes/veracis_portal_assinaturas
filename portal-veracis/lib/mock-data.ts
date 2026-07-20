@@ -1,24 +1,36 @@
-import { Consulta, TipoConsulta } from './types';
+import { Appointment, AppointmentType, SharedFile } from './types';
 
-export const CONSULTAS_HOJE: Consulta[] = [
-  { id:1,  hora:'07:30', paciente:'Ana Lúcia Ferreira',        carteira:'0034 8891 2201', medico:'Dra. Laila Santa Bárbara', especialidade:'Cardiologia',      tipo:'Consulta', exigeFacial:true,  pedido:'784120', status:'assinado',   realizada:true,  enc:null },
-  { id:2,  hora:'08:00', paciente:'José Carlos Menezes',       carteira:'0034 5120 8834', medico:'Dr. Rodrigo Lazzarini',    especialidade:'Ortopedia',        tipo:'Consulta', exigeFacial:true,  pedido:'784131', status:'assinado',   realizada:false, enc:null },
-  { id:3,  hora:'08:30', paciente:'Maria Aparecida Souza',     carteira:'0034 7745 0192', medico:'Tharley Jean',             especialidade:'Fisioterapia',     tipo:'Terapia',  exigeFacial:true,  pedido:'784142', status:'autorizado', realizada:false, enc:{ arquivo:'encaminhamento-fisioterapia-maria.pdf', usadas:7, total:10 } },
-  { id:4,  hora:'09:15', paciente:'Pedro Henrique Alves',      carteira:'0034 3308 6617', medico:'Jessé Bárbara',            especialidade:'Ultrassonografia', tipo:'Exame',    exigeFacial:false, pedido:'784156', status:'facial',     realizada:false, enc:{ arquivo:'encaminhamento-ultrassom-pedro.pdf', usadas:1, total:1 } },
-  { id:5,  hora:'10:00', paciente:'Francisca das Chagas Lima', carteira:'0034 9012 4478', medico:'Dra. Marina Lages',        especialidade:'Dermatologia',     tipo:'Consulta', exigeFacial:true,  pedido:'784163', status:'facial',     realizada:false, enc:null },
-  { id:6,  hora:'10:30', paciente:'Carlos Eduardo Ramos',      carteira:'0034 6633 1902', medico:'Dr. Fernando Peixoto',     especialidade:'Urologia',         tipo:'Consulta', exigeFacial:true,  pedido:null,     status:'facial',     realizada:false, enc:null },
-  { id:7,  hora:'11:00', paciente:'Luana Beatriz Santos',      carteira:'0034 2210 7743', medico:'Dra. Gabriela Duarte',     especialidade:'Pediatria',        tipo:'Consulta', exigeFacial:true,  pedido:'784177', status:'facial',     realizada:false, enc:null },
-  { id:8,  hora:'13:30', paciente:'Antônio Geraldo Pires',     carteira:'0034 4419 5560', medico:'Rejanny Duque',            especialidade:'Fisioterapia',     tipo:'Terapia',  exigeFacial:true,  pedido:null,     status:'facial',     realizada:false, enc:{ arquivo:'encaminhamento-fisioterapia-antonio.pdf', usadas:10, total:10 } },
-  { id:9,  hora:'14:00', paciente:'Rita de Cássia Moreira',    carteira:'0034 1187 3325', medico:'Dra. Letícia Vieira',      especialidade:'Endocrinologia',   tipo:'Consulta', exigeFacial:true,  pedido:'784185', status:'autorizado', realizada:true,  enc:null },
+export const TODAY_APPOINTMENTS: Appointment[] = [
+  { id:1,  time:'07:30', patient:'Ana Lúcia Ferreira',        insuranceCard:'0034 8891 2201', doctor:'Dra. Laila Santa Bárbara', specialty:'Cardiologia',      serviceType:'Consulta', requiresFacial:true,  authorizationNumber:'784120', status:'signed',     completed:true,  referral:null },
+  { id:2,  time:'08:00', patient:'José Carlos Menezes',       insuranceCard:'0034 5120 8834', doctor:'Dr. Rodrigo Lazzarini',    specialty:'Ortopedia',        serviceType:'Consulta', requiresFacial:true,  authorizationNumber:'784131', status:'signed',     completed:false, referral:null },
+  { id:3,  time:'08:30', patient:'Maria Aparecida Souza',     insuranceCard:'0034 7745 0192', doctor:'Tharley Jean',             specialty:'Fisioterapia',     serviceType:'Terapia',  requiresFacial:true,  authorizationNumber:'784142', status:'authorized', completed:false, referral:{ fileName:'encaminhamento-fisioterapia-maria.pdf', used:7, total:10 } },
+  { id:4,  time:'09:15', patient:'Pedro Henrique Alves',      insuranceCard:'0034 3308 6617', doctor:'Jessé Bárbara',            specialty:'Ultrassonografia', serviceType:'Exame',    requiresFacial:false, authorizationNumber:'784156', status:'facial',     completed:false, referral:{ fileName:'encaminhamento-ultrassom-pedro.pdf', used:1, total:1 } },
+  { id:5,  time:'10:00', patient:'Francisca das Chagas Lima', insuranceCard:'0034 9012 4478', doctor:'Dra. Marina Lages',        specialty:'Dermatologia',     serviceType:'Consulta', requiresFacial:true,  authorizationNumber:'784163', status:'facial',     completed:false, referral:null },
+  { id:6,  time:'10:30', patient:'Carlos Eduardo Ramos',      insuranceCard:'0034 6633 1902', doctor:'Dr. Fernando Peixoto',     specialty:'Urologia',         serviceType:'Consulta', requiresFacial:true,  authorizationNumber:null,     status:'facial',     completed:false, referral:null },
+  { id:7,  time:'11:00', patient:'Luana Beatriz Santos',      insuranceCard:'0034 2210 7743', doctor:'Dra. Gabriela Duarte',     specialty:'Pediatria',        serviceType:'Consulta', requiresFacial:true,  authorizationNumber:'784177', status:'facial',     completed:false, referral:null },
+  { id:8,  time:'13:30', patient:'Antônio Geraldo Pires',     insuranceCard:'0034 4419 5560', doctor:'Rejanny Duque',            specialty:'Fisioterapia',     serviceType:'Terapia',  requiresFacial:true,  authorizationNumber:null,     status:'facial',     completed:false, referral:{ fileName:'encaminhamento-fisioterapia-antonio.pdf', used:10, total:10 } },
+  { id:9,  time:'14:00', patient:'Rita de Cássia Moreira',    insuranceCard:'0034 1187 3325', doctor:'Dra. Letícia Vieira',      specialty:'Endocrinologia',   serviceType:'Consulta', requiresFacial:true,  authorizationNumber:'784185', status:'authorized', completed:true,  referral:null },
 ];
 
-export const TIPOS_CONSULTA: TipoConsulta[] = [
-  { id:1, nome:'Consulta médica',       cbo:'225125', tus:'10101012', valor:88  },
-  { id:2, nome:'Fisioterapia — sessão', cbo:'223605', tus:'50000470', valor:45  },
-  { id:3, nome:'Psicologia — sessão',   cbo:'251510', tus:'50000462', valor:60  },
-  { id:4, nome:'Nutrição — consulta',   cbo:'223710', tus:'50000454', valor:60  },
-  { id:5, nome:'Ultrassonografia',      cbo:'225120', tus:'40901220', valor:120 },
+export const APPOINTMENT_TYPES: AppointmentType[] = [
+  { id:1, name:'Consulta médica',       cbo:'225125', tus:'10101012', rate:88  },
+  { id:2, name:'Fisioterapia — sessão', cbo:'223605', tus:'50000470', rate:45  },
+  { id:3, name:'Psicologia — sessão',   cbo:'251510', tus:'50000462', rate:60  },
+  { id:4, name:'Nutrição — consulta',   cbo:'223710', tus:'50000454', rate:60  },
+  { id:5, name:'Ultrassonografia',      cbo:'225120', tus:'40901220', rate:120 },
 ];
+
+function isoAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().split('T')[0];
+}
+
+function labelAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toLocaleDateString('pt-BR');
+}
 
 function daysAgo(n: number): string {
   const d = new Date();
@@ -26,17 +38,70 @@ function daysAgo(n: number): string {
   return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' });
 }
 
-export const HISTORICO: Consulta[] = [
-  { id:101, hora:'08:00', data:daysAgo(1),  paciente:'Marcos Vinícius Carvalho', carteira:'0034 1122 3344', medico:'Dr. Rodrigo Lazzarini',    especialidade:'Ortopedia',     tipo:'Consulta', exigeFacial:true,  pedido:'783901', status:'assinado', realizada:true,  enc:null },
-  { id:102, hora:'09:30', data:daysAgo(1),  paciente:'Beatriz Oliveira',          carteira:'0034 5566 7788', medico:'Dra. Laila Santa Bárbara', especialidade:'Cardiologia',   tipo:'Consulta', exigeFacial:true,  pedido:'783912', status:'assinado', realizada:true,  enc:null },
-  { id:103, hora:'10:00', data:daysAgo(1),  paciente:'Raimundo Nonato Silva',     carteira:'0034 9900 1122', medico:'Tharley Jean',             especialidade:'Fisioterapia',  tipo:'Terapia',  exigeFacial:true,  pedido:'783920', status:'assinado', realizada:false, enc:{ arquivo:'enc-fisio.pdf', usadas:5, total:10 } },
-  { id:104, hora:'14:00', data:daysAgo(2),  paciente:'Cristiane Nunes',           carteira:'0034 3344 5566', medico:'Dra. Marina Lages',        especialidade:'Dermatologia',  tipo:'Consulta', exigeFacial:true,  pedido:'783800', status:'cancelado', realizada:false, enc:null },
-  { id:105, hora:'08:30', data:daysAgo(3),  paciente:'Edilson Brito',             carteira:'0034 7788 9900', medico:'Jessé Bárbara',            especialidade:'Ultrassonografia', tipo:'Exame', exigeFacial:false, pedido:'783750', status:'assinado', realizada:true,  enc:{ arquivo:'enc-eco.pdf', usadas:1, total:1 } },
-  { id:106, hora:'11:00', data:daysAgo(3),  paciente:'Sueli Aparecida Costa',     carteira:'0034 2233 4455', medico:'Dr. Fernando Peixoto',     especialidade:'Urologia',      tipo:'Consulta', exigeFacial:true,  pedido:'783762', status:'assinado', realizada:true,  enc:null },
-  { id:107, hora:'09:00', data:daysAgo(5),  paciente:'Wanderson Alves',           carteira:'0034 6677 8899', medico:'Rejanny Duque',            especialidade:'Fisioterapia',  tipo:'Terapia',  exigeFacial:true,  pedido:'783600', status:'assinado', realizada:true,  enc:{ arquivo:'enc-wander.pdf', usadas:8, total:10 } },
-  { id:108, hora:'15:00', data:daysAgo(7),  paciente:'Neusa Ribeiro Fonseca',     carteira:'0034 8899 0011', medico:'Dra. Gabriela Duarte',     especialidade:'Pediatria',     tipo:'Consulta', exigeFacial:true,  pedido:'783450', status:'assinado', realizada:true,  enc:null },
-  { id:109, hora:'10:30', data:daysAgo(10), paciente:'Elias Ferreira da Cruz',    carteira:'0034 1100 2211', medico:'Dra. Letícia Vieira',      especialidade:'Endocrinologia', tipo:'Consulta', exigeFacial:true, pedido:'783200', status:'cancelado', realizada:false, enc:null },
-  { id:110, hora:'08:00', data:daysAgo(12), paciente:'Miriam Santos Pereira',     carteira:'0034 3322 1100', medico:'Tharley Jean',             especialidade:'Fisioterapia',  tipo:'Terapia',  exigeFacial:true,  pedido:'783100', status:'assinado', realizada:true,  enc:{ arquivo:'enc-mir.pdf', usadas:3, total:10 } },
-  { id:111, hora:'09:45', data:daysAgo(15), paciente:'Jonathas Lima Barreto',     carteira:'0034 5544 3322', medico:'Dr. Rodrigo Lazzarini',    especialidade:'Ortopedia',     tipo:'Consulta', exigeFacial:true,  pedido:'783000', status:'assinado', realizada:true,  enc:null },
-  { id:112, hora:'11:30', data:daysAgo(20), paciente:'Adriana Conceição Matos',   carteira:'0034 7766 5544', medico:'Dra. Laila Santa Bárbara', especialidade:'Cardiologia',   tipo:'Consulta', exigeFacial:true,  pedido:'782800', status:'assinado', realizada:false, enc:null },
+export const SHARED_FILES_MOCK: SharedFile[] = [
+  {
+    id: 1,
+    provider: 'Dr. Rodrigo Lazzarini',
+    appointmentLabel: `${daysAgo(1)} · Marcos Vinícius Carvalho · Ortopedia`,
+    postedAt: isoAgo(1),
+    postedAtLabel: labelAgo(1),
+    fileName: 'guia-marcos-ortopedia.pdf',
+    fileType: 'pdf',
+    fileDataUrl: null,
+  },
+  {
+    id: 2,
+    provider: 'Dra. Laila Santa Bárbara',
+    appointmentLabel: `${daysAgo(1)} · Beatriz Oliveira · Cardiologia`,
+    postedAt: isoAgo(1),
+    postedAtLabel: labelAgo(1),
+    fileName: 'resultado-ecg-beatriz.png',
+    fileType: 'png',
+    fileDataUrl: null,
+  },
+  {
+    id: 3,
+    provider: 'Tharley Jean',
+    appointmentLabel: `${daysAgo(3)} · Raimundo Nonato Silva · Fisioterapia`,
+    postedAt: isoAgo(3),
+    postedAtLabel: labelAgo(3),
+    fileName: 'evolucao-fisio-raimundo.pdf',
+    fileType: 'pdf',
+    fileDataUrl: null,
+  },
+  {
+    id: 4,
+    provider: 'Jessé Bárbara',
+    appointmentLabel: `${daysAgo(5)} · Edilson Brito · Ultrassonografia`,
+    postedAt: isoAgo(5),
+    postedAtLabel: labelAgo(5),
+    fileName: 'laudo-ultrassom-edilson.pdf',
+    fileType: 'pdf',
+    fileDataUrl: null,
+  },
+  {
+    id: 5,
+    provider: 'Dra. Marina Lages',
+    appointmentLabel: `${daysAgo(7)} · Cristiane Nunes · Dermatologia`,
+    postedAt: isoAgo(7),
+    postedAtLabel: labelAgo(7),
+    fileName: 'foto-lesao-cristiane.png',
+    fileType: 'png',
+    fileDataUrl: null,
+  },
+];
+
+export const HISTORY: Appointment[] = [
+  { id:101, time:'08:00', date:daysAgo(1),  patient:'Marcos Vinícius Carvalho', insuranceCard:'0034 1122 3344', doctor:'Dr. Rodrigo Lazzarini',    specialty:'Ortopedia',     serviceType:'Consulta', requiresFacial:true,  authorizationNumber:'783901', status:'signed',    completed:true,  referral:null },
+  { id:102, time:'09:30', date:daysAgo(1),  patient:'Beatriz Oliveira',          insuranceCard:'0034 5566 7788', doctor:'Dra. Laila Santa Bárbara', specialty:'Cardiologia',   serviceType:'Consulta', requiresFacial:true,  authorizationNumber:'783912', status:'signed',    completed:true,  referral:null },
+  { id:103, time:'10:00', date:daysAgo(1),  patient:'Raimundo Nonato Silva',     insuranceCard:'0034 9900 1122', doctor:'Tharley Jean',             specialty:'Fisioterapia',  serviceType:'Terapia',  requiresFacial:true,  authorizationNumber:'783920', status:'signed',    completed:false, referral:{ fileName:'enc-fisio.pdf', used:5, total:10 } },
+  { id:104, time:'14:00', date:daysAgo(2),  patient:'Cristiane Nunes',           insuranceCard:'0034 3344 5566', doctor:'Dra. Marina Lages',        specialty:'Dermatologia',  serviceType:'Consulta', requiresFacial:true,  authorizationNumber:'783800', status:'cancelled', completed:false, referral:null },
+  { id:105, time:'08:30', date:daysAgo(3),  patient:'Edilson Brito',             insuranceCard:'0034 7788 9900', doctor:'Jessé Bárbara',            specialty:'Ultrassonografia', serviceType:'Exame', requiresFacial:false, authorizationNumber:'783750', status:'signed',    completed:true,  referral:{ fileName:'enc-eco.pdf', used:1, total:1 } },
+  { id:106, time:'11:00', date:daysAgo(3),  patient:'Sueli Aparecida Costa',     insuranceCard:'0034 2233 4455', doctor:'Dr. Fernando Peixoto',     specialty:'Urologia',      serviceType:'Consulta', requiresFacial:true,  authorizationNumber:'783762', status:'signed',    completed:true,  referral:null },
+  { id:107, time:'09:00', date:daysAgo(5),  patient:'Wanderson Alves',           insuranceCard:'0034 6677 8899', doctor:'Rejanny Duque',            specialty:'Fisioterapia',  serviceType:'Terapia',  requiresFacial:true,  authorizationNumber:'783600', status:'signed',    completed:true,  referral:{ fileName:'enc-wander.pdf', used:8, total:10 } },
+  { id:108, time:'15:00', date:daysAgo(7),  patient:'Neusa Ribeiro Fonseca',     insuranceCard:'0034 8899 0011', doctor:'Dra. Gabriela Duarte',     specialty:'Pediatria',     serviceType:'Consulta', requiresFacial:true,  authorizationNumber:'783450', status:'signed',    completed:true,  referral:null },
+  { id:109, time:'10:30', date:daysAgo(10), patient:'Elias Ferreira da Cruz',    insuranceCard:'0034 1100 2211', doctor:'Dra. Letícia Vieira',      specialty:'Endocrinologia', serviceType:'Consulta', requiresFacial:true, authorizationNumber:'783200', status:'cancelled', completed:false, referral:null },
+  { id:110, time:'08:00', date:daysAgo(12), patient:'Miriam Santos Pereira',     insuranceCard:'0034 3322 1100', doctor:'Tharley Jean',             specialty:'Fisioterapia',  serviceType:'Terapia',  requiresFacial:true,  authorizationNumber:'783100', status:'signed',    completed:true,  referral:{ fileName:'enc-mir.pdf', used:3, total:10 } },
+  { id:111, time:'09:45', date:daysAgo(15), patient:'Jonathas Lima Barreto',     insuranceCard:'0034 5544 3322', doctor:'Dr. Rodrigo Lazzarini',    specialty:'Ortopedia',     serviceType:'Consulta', requiresFacial:true,  authorizationNumber:'783000', status:'signed',    completed:true,  referral:null },
+  { id:112, time:'11:30', date:daysAgo(20), patient:'Adriana Conceição Matos',   insuranceCard:'0034 7766 5544', doctor:'Dra. Laila Santa Bárbara', specialty:'Cardiologia',   serviceType:'Consulta', requiresFacial:true,  authorizationNumber:'782800', status:'signed',    completed:false, referral:null },
 ];

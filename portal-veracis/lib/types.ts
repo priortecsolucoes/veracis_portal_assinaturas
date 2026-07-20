@@ -1,37 +1,48 @@
-export type Role = 'recepcao' | 'faturamento';
-export type Status = 'facial' | 'autorizado' | 'assinado' | 'papel' | 'cancelado';
-export type Tab = 'dashboard' | 'detail' | 'relatorio' | 'tipos';
-export type Filter = 'todas' | 'baixar' | 'assinar' | 'concluidas';
-export type Periodo = 'semana' | 'mes' | 'trimestre' | 'todos';
+export type Role = 'reception' | 'billing';
+export type Status = 'facial' | 'authorized' | 'signed' | 'paper' | 'cancelled';
+export type Tab = 'dashboard' | 'detail' | 'reports' | 'types' | 'files';
+export type Filter = 'all' | 'download' | 'sign' | 'completed';
+export type Period = 'week' | 'month' | 'quarter' | 'all';
 
-export interface Encaminhamento {
-  arquivo: string;
-  usadas: number;
+export interface Referral {
+  fileName: string;
+  used: number;
   total: number;
 }
 
-export interface Consulta {
+export interface Appointment {
   id: number;
-  hora: string;
-  paciente: string;
-  carteira: string;
-  medico: string;
-  especialidade: string;
-  tipo: 'Consulta' | 'Terapia' | 'Exame';
-  exigeFacial: boolean;
-  pedido: string | null;
+  time: string;
+  patient: string;
+  insuranceCard: string;
+  doctor: string;
+  specialty: string;
+  serviceType: 'Consulta' | 'Terapia' | 'Exame';
+  requiresFacial: boolean;
+  authorizationNumber: string | null;
   status: Status;
-  realizada: boolean;
-  enc: Encaminhamento | null;
-  data?: string; // for historical records
+  completed: boolean;
+  referral: Referral | null;
+  date?: string; // for historical records
 }
 
-export interface TipoConsulta {
+export interface SharedFile {
   id: number;
-  nome: string;
+  provider: string;
+  appointmentLabel: string;   // "19/07 · Patient · Specialty"
+  postedAt: string;           // 'YYYY-MM-DD' — used for sorting and filtering
+  postedAtLabel: string;      // 'dd/mm/yyyy' — display
+  fileName: string;
+  fileType: 'pdf' | 'png';
+  fileDataUrl: string | null; // base64 data URL; null for demo data
+}
+
+export interface AppointmentType {
+  id: number;
+  name: string;
   cbo: string;
   tus: string;
-  valor: number;
+  rate: number;
 }
 
 export interface ChatMessage {
@@ -41,13 +52,13 @@ export interface ChatMessage {
 
 export const ST: Record<Status, { label: string; bg: string; color: string }> = {
   facial:     { label: 'Pend. reconhec. facial', bg: '#FBF0DC', color: '#8A5A12' },
-  autorizado: { label: 'Autorizado',             bg: '#DDEEF9', color: '#1E6EA7' },
-  assinado:   { label: 'Assinado',               bg: '#E3F2E8', color: '#1D6B3C' },
-  papel:      { label: 'Assinado (papel)',        bg: '#EFE6F5', color: '#6B3E8F' },
-  cancelado:  { label: 'Cancelada (não veio)',    bg: '#F7E4E1', color: '#A33B2E' },
+  authorized: { label: 'Autorizado',             bg: '#DDEEF9', color: '#1E6EA7' },
+  signed:     { label: 'Assinado',               bg: '#E3F2E8', color: '#1D6B3C' },
+  paper:      { label: 'Assinado (papel)',        bg: '#EFE6F5', color: '#6B3E8F' },
+  cancelled:  { label: 'Cancelada (não veio)',    bg: '#F7E4E1', color: '#A33B2E' },
 };
 
-export const VALOR: Record<string, number> = {
+export const SERVICE_RATES: Record<string, number> = {
   Consulta: 88,
   Terapia: 45,
   Exame: 120,

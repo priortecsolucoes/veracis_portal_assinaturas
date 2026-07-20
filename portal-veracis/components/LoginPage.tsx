@@ -7,8 +7,8 @@ export default function LoginPage() {
   const { loginRole, setLoginRole, login } = useStore();
 
   const roles: { value: Role; label: string }[] = [
-    { value: 'recepcao', label: 'Recepção' },
-    { value: 'faturamento', label: 'Faturamento' },
+    { value: 'reception', label: 'Recepção' },
+    { value: 'billing', label: 'Faturamento' },
   ];
 
   return (
@@ -64,7 +64,7 @@ export default function LoginPage() {
               <div style={{ fontSize:13, fontWeight:700, marginBottom:6 }}>E-mail</div>
               <input
                 type="email"
-                defaultValue={loginRole === 'recepcao' ? 'recepcao@clinicaveracis.com.br' : 'faturamento@clinicaveracis.com.br'}
+                defaultValue={loginRole === 'reception' ? 'recepcao@clinicaveracis.com.br' : 'faturamento@clinicaveracis.com.br'}
                 style={{ width:'100%', padding:'13px 14px', border:'1px solid #D8D6CF', borderRadius:10, fontSize:15, fontFamily:'inherit', background:'#FFFFFF' }}
               />
             </div>

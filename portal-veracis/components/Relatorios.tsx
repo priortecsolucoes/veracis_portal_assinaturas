@@ -1,68 +1,70 @@
 'use client';
 
 import { useStore } from '@/lib/store';
-import { ST, VALOR, brl } from '@/lib/types';
-import { HISTORICO } from '@/lib/mock-data';
+import { ST, SERVICE_RATES, brl } from '@/lib/types';
+import { HISTORY } from '@/lib/mock-data';
 import StatusPill from './StatusPill';
-import type { Consulta, Periodo } from '@/lib/types';
+import type { Appointment, Period } from '@/lib/types';
 
 export default function Relatorios() {
-  const { role, periodo, setPeriodo, selectRep, consultas } = useStore();
-  const fat = role === 'faturamento';
+  const { role, period, setPeriod, selectRep, appointments } = useStore();
+  const isBilling = role === 'billing';
 
   const today = new Date();
   function cutoffDays(days: number) {
     const d = new Date(); d.setDate(d.getDate() - days); return d;
   }
 
-  // Combine today's data with historical (today's consultas get today's date)
+  // Combine today's data with historical
   const todayStr = today.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' });
-  const allRecords: (Consulta & { data: string })[] = [
-    ...consultas.map(c => ({ ...c, data: todayStr })),
-    ...HISTORICO as (Consulta & { data: string })[],
+  const allRecords: (Appointment & { date: string })[] = [
+    ...appointments.map(c => ({ ...c, date: todayStr })),
+    ...HISTORY as (Appointment & { date: string })[],
   ];
 
-  const periodos: { key: Periodo; label: string; days: number }[] = [
-    { key:'semana',    label:'7 dias',    days:7   },
-    { key:'mes',       label:'30 dias',   days:30  },
-    { key:'trimestre', label:'90 dias',   days:90  },
-    { key:'todos',     label:'Tudo',      days:999 },
+  const periods: { key: Period; label: string; days: number }[] = [
+    { key:'week',    label:'7 dias',  days:7   },
+    { key:'month',   label:'30 dias', days:30  },
+    { key:'quarter', label:'90 dias', days:90  },
+    { key:'all',     label:'Tudo',    days:999 },
   ];
 
-  const activePeriodo = periodos.find(p => p.key === periodo)!;
+  const activePeriod = periods.find(p => p.key === period)!;
 
-  const rows = allRecords.filter(r => {
-    if (periodo === 'todos') return true;
-    // Simple filter: keep all for now since dates are strings
+  const rows = allRecords.filter(() => {
+    if (period === 'all') return true;
     return true;
-  }).slice(0, activePeriodo.days === 7 ? 15 : activePeriodo.days === 30 ? 25 : allRecords.length);
+  }).slice(0, activePeriod.days === 7 ? 15 : activePeriod.days === 30 ? 25 : allRecords.length);
 
   // Summary cards
   const totalRows = rows.length;
-  const assinadas = rows.filter(r => r.status === 'assinado' || r.status === 'papel').length;
-  const canceladas = rows.filter(r => r.status === 'cancelado').length;
-  const realizadas = rows.filter(r => r.realizada).length;
-  const totalValor = rows.reduce((sum, r) => sum + (VALOR[r.tipo] || 0), 0);
+  const signedCount = rows.filter(r => r.status === 'signed' || r.status === 'paper').length;
+  const cancelledCount = rows.filter(r => r.status === 'cancelled').length;
+  const completedCount = rows.filter(r => r.completed).length;
+  const totalAmount = rows.reduce((sum, r) => sum + (SERVICE_RATES[r.serviceType] || 0), 0);
 
-  const repCards = [
-    { label:'Total de guias', value: String(totalRows), accent:'#22302C' },
-    { label:'Assinadas',      value: String(assinadas),  accent:'#1D6B3C' },
-    { label:'Canceladas',     value: String(canceladas), accent:'#A33B2E' },
-    ...(fat ? [{ label:'Valor total', value: brl(totalValor), accent:'#0E6B5B' }] : [{ label:'Realizadas', value: String(realizadas), accent:'#0E6B5B' }]),
+  const summaryCards = [
+    { label:'Total de guias', value: String(totalRows),     accent:'#22302C' },
+    { label:'Assinadas',      value: String(signedCount),   accent:'#1D6B3C' },
+    { label:'Canceladas',     value: String(cancelledCount), accent:'#A33B2E' },
+    ...(isBilling
+      ? [{ label:'Valor total', value: brl(totalAmount), accent:'#0E6B5B' }]
+      : [{ label:'Realizadas', value: String(completedCount), accent:'#0E6B5B' }]
+    ),
   ];
 
-  const repGrid = fat
+  const tableGrid = isBilling
     ? '88px 1.2fr 1.1fr 100px 0.8fr 1.1fr 80px 100px 80px'
     : '88px 1.2fr 1.1fr 100px 0.8fr 1.1fr 80px 80px';
 
-  const periodoLabel = `Últimos ${activePeriodo.days === 999 ? '~40' : activePeriodo.days} dias · Convênio Unimed`;
+  const periodLabel = `Últimos ${activePeriod.days === 999 ? '~40' : activePeriod.days} dias · Convênio Unimed`;
 
   function exportCsv() {
-    const header = ['Data','Paciente','Profissional','Nº Pedido','Guia','Status','Realizada', ...(fat ? ['Valor'] : [])].join(',');
+    const header = ['Data','Paciente','Profissional','Nº Pedido','Guia','Status','Realizada', ...(isBilling ? ['Valor'] : [])].join(',');
     const lines = rows.map(r => [
-      r.data, r.paciente, r.medico, r.pedido || '', r.tipo,
-      ST[r.status].label, r.realizada ? 'Sim' : 'Não',
-      ...(fat ? [brl(VALOR[r.tipo] || 0)] : []),
+      r.date, r.patient, r.doctor, r.authorizationNumber || '', r.serviceType,
+      ST[r.status].label, r.completed ? 'Sim' : 'Não',
+      ...(isBilling ? [brl(SERVICE_RATES[r.serviceType] || 0)] : []),
     ].map(v => `"${v}"`).join(','));
     const csv = [header, ...lines].join('\n');
     const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
@@ -77,14 +79,14 @@ export default function Relatorios() {
       <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:16, flexWrap:'wrap' }}>
         <div>
           <div style={{ fontSize:24, fontWeight:800 }}>Relatórios e Histórico</div>
-          <div style={{ color:'#6B7A75', fontSize:14, marginTop:4 }}>{periodoLabel}</div>
+          <div style={{ color:'#6B7A75', fontSize:14, marginTop:4 }}>{periodLabel}</div>
         </div>
         <div style={{ display:'flex', gap:10, alignItems:'center' }}>
           <div style={{ display:'flex', background:'#FFFFFF', border:'1px solid #E5E3DD', borderRadius:10, padding:4, gap:2 }}>
-            {periodos.map((p) => {
-              const active = periodo === p.key;
+            {periods.map((p) => {
+              const active = period === p.key;
               return (
-                <button key={p.key} onClick={() => setPeriodo(p.key)} style={{ padding:'8px 16px', border:'none', borderRadius:8, background: active ? '#E7F1EE' : 'transparent', color: active ? '#0E6B5B' : '#6B7A75', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                <button key={p.key} onClick={() => setPeriod(p.key)} style={{ padding:'8px 16px', border:'none', borderRadius:8, background: active ? '#E7F1EE' : 'transparent', color: active ? '#0E6B5B' : '#6B7A75', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer' }}>
                   {p.label}
                 </button>
               );
@@ -103,40 +105,40 @@ export default function Relatorios() {
 
       {/* Summary cards */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:14 }}>
-        {repCards.map((rc) => (
-          <div key={rc.label} style={{ background:'#FFFFFF', border:'1px solid #E5E3DD', borderRadius:14, padding:'16px 20px' }}>
-            <div style={{ fontSize:13, fontWeight:700, color:'#6B7A75' }}>{rc.label}</div>
-            <div style={{ fontSize:28, fontWeight:800, marginTop:4, color:rc.accent }}>{rc.value}</div>
+        {summaryCards.map((sc) => (
+          <div key={sc.label} style={{ background:'#FFFFFF', border:'1px solid #E5E3DD', borderRadius:14, padding:'16px 20px' }}>
+            <div style={{ fontSize:13, fontWeight:700, color:'#6B7A75' }}>{sc.label}</div>
+            <div style={{ fontSize:28, fontWeight:800, marginTop:4, color:sc.accent }}>{sc.value}</div>
           </div>
         ))}
       </div>
 
       {/* Table */}
       <div style={{ background:'#FFFFFF', border:'1px solid #E5E3DD', borderRadius:14, overflow:'hidden' }}>
-        <div style={{ display:'grid', gridTemplateColumns:repGrid, gap:12, padding:'12px 20px', fontSize:11, fontWeight:800, color:'#9AA6A1', letterSpacing:'0.06em', borderBottom:'1px solid #EEEDE8' }}>
+        <div style={{ display:'grid', gridTemplateColumns:tableGrid, gap:12, padding:'12px 20px', fontSize:11, fontWeight:800, color:'#9AA6A1', letterSpacing:'0.06em', borderBottom:'1px solid #EEEDE8' }}>
           <div>DATA</div><div>PACIENTE</div><div>PROFISSIONAL</div><div>Nº PEDIDO</div>
           <div>GUIA</div><div>STATUS</div><div>REALIZADA</div>
-          {fat && <div style={{ textAlign:'right' }}>VALOR</div>}
+          {isBilling && <div style={{ textAlign:'right' }}>VALOR</div>}
           <div></div>
         </div>
 
         {rows.map((r) => {
-          const realColor = r.realizada ? '#1D6B3C' : '#B9C6C1';
+          const completedColor = r.completed ? '#1D6B3C' : '#B9C6C1';
           return (
             <div
               key={r.id}
-              style={{ display:'grid', gridTemplateColumns:repGrid, gap:12, padding:'12px 20px', alignItems:'center', borderBottom:'1px solid #F3F2ED', fontSize:14 }}
+              style={{ display:'grid', gridTemplateColumns:tableGrid, gap:12, padding:'12px 20px', alignItems:'center', borderBottom:'1px solid #F3F2ED', fontSize:14 }}
               onMouseEnter={(e) => (e.currentTarget.style.background = '#FAFAF7')}
               onMouseLeave={(e) => (e.currentTarget.style.background = '')}
             >
-              <div style={{ fontWeight:700, color:'#6B7A75' }}>{r.data}</div>
-              <div style={{ fontWeight:700 }}>{r.paciente}</div>
-              <div style={{ color:'#6B7A75' }}>{r.medico}</div>
-              <div style={{ fontSize:13, fontWeight:700, fontVariantNumeric:'tabular-nums' }}>{r.pedido || '—'}</div>
-              <div style={{ fontSize:13, color:'#6B7A75', fontWeight:600 }}>{r.tipo}</div>
+              <div style={{ fontWeight:700, color:'#6B7A75' }}>{r.date}</div>
+              <div style={{ fontWeight:700 }}>{r.patient}</div>
+              <div style={{ color:'#6B7A75' }}>{r.doctor}</div>
+              <div style={{ fontSize:13, fontWeight:700, fontVariantNumeric:'tabular-nums' }}>{r.authorizationNumber || '—'}</div>
+              <div style={{ fontSize:13, color:'#6B7A75', fontWeight:600 }}>{r.serviceType}</div>
               <div><StatusPill status={r.status} size="sm" /></div>
-              <div style={{ fontSize:12, fontWeight:800, color:realColor }}>{r.realizada ? '✓ Sim' : '—'}</div>
-              {fat && <div style={{ textAlign:'right', fontWeight:700, fontVariantNumeric:'tabular-nums' }}>{brl(VALOR[r.tipo] || 0)}</div>}
+              <div style={{ fontSize:12, fontWeight:800, color:completedColor }}>{r.completed ? '✓ Sim' : '—'}</div>
+              {isBilling && <div style={{ textAlign:'right', fontWeight:700, fontVariantNumeric:'tabular-nums' }}>{brl(SERVICE_RATES[r.serviceType] || 0)}</div>}
               <div style={{ textAlign:'right' }}>
                 <button
                   onClick={() => selectRep(r)}
@@ -152,7 +154,7 @@ export default function Relatorios() {
         })}
       </div>
 
-      {!fat && (
+      {!isBilling && (
         <div style={{ fontSize:12.5, color:'#9AA6A1' }}>Valores das consultas são visíveis apenas no relatório de faturamento (acesso restrito ao time da Beth).</div>
       )}
     </div>

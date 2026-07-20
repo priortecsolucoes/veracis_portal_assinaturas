@@ -11,11 +11,7 @@ import Toast from './Toast';
 export default function PortalApp() {
   const {
     isLoggedIn, userId, tabletMode,
-    consultas, remoteSignConsultaId,
-    setDevicesOnline, saveAssinatura, patchConsulta,
-    selectConsulta, setTabletMode,
-    startRemoteSigning, clearRemoteSigning,
-    showToast,
+    appointments, remoteSignAppointmentId,
   } = useStore();
 
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -35,25 +31,25 @@ export default function PortalApp() {
 
     socket.on('sign:request', ({ consultaId }: { consultaId: number }) => {
       // Another device is asking this device to show the signing screen
-      useStore.getState().selectConsulta(consultaId);
+      useStore.getState().selectAppointment(consultaId);
       useStore.getState().setTabletMode('signing');
     });
 
     socket.on('sign:done', ({ consultaId, assinaturaPngBase64 }: { consultaId: number; assinaturaPngBase64: string; hora: string }) => {
       const state = useStore.getState();
-      state.saveAssinatura(consultaId, assinaturaPngBase64);
-      state.patchConsulta(consultaId, { status: 'assinado' });
+      state.saveSignature(consultaId, assinaturaPngBase64);
+      state.patchAppointment(consultaId, { status: 'signed' });
 
-      if (state.tabletMode === 'remote' && state.remoteSignConsultaId === consultaId) {
-        const paciente = state.consultas.find((c) => c.id === consultaId)?.paciente || '';
-        state.showToast(`Assinatura de ${paciente} recebida do tablet ✓`);
+      if (state.tabletMode === 'remote' && state.remoteSignAppointmentId === consultaId) {
+        const patient = state.appointments.find((c) => c.id === consultaId)?.patient || '';
+        state.showToast(`Assinatura de ${patient} recebida do tablet ✓`);
         state.clearRemoteSigning();
       }
     });
 
     socket.on('sign:cancel', ({ consultaId }: { consultaId?: number }) => {
       const state = useStore.getState();
-      if (state.tabletMode === 'remote' && (!consultaId || state.remoteSignConsultaId === consultaId)) {
+      if (state.tabletMode === 'remote' && (!consultaId || state.remoteSignAppointmentId === consultaId)) {
         state.showToast('Coleta de assinatura cancelada');
         state.clearRemoteSigning();
       } else if (state.tabletMode === 'signing') {
@@ -97,17 +93,17 @@ export default function PortalApp() {
   }, [isLoggedIn]);
 
   function handleCancelRemote() {
-    const consultaId = useStore.getState().remoteSignConsultaId;
-    if (consultaId !== null) {
-      getSocket()?.emit('sign:cancel', { consultaId });
+    const appointmentId = useStore.getState().remoteSignAppointmentId;
+    if (appointmentId !== null) {
+      getSocket()?.emit('sign:cancel', { consultaId: appointmentId });
     }
     useStore.getState().showToast('Coleta de assinatura cancelada');
     useStore.getState().clearRemoteSigning();
   }
 
   // Patient name for the remote overlay
-  const remoteConsulta = remoteSignConsultaId !== null
-    ? consultas.find((c) => c.id === remoteSignConsultaId)
+  const remoteAppointment = remoteSignAppointmentId !== null
+    ? appointments.find((c) => c.id === remoteSignAppointmentId)
     : null;
 
   const showTabletMode = isLoggedIn && (tabletMode === 'signing' || tabletMode === 'done');
@@ -141,10 +137,10 @@ export default function PortalApp() {
             <div style={{ fontSize: 22, fontWeight: 800, color: '#22302C' }}>
               Aguardando assinatura no tablet…
             </div>
-            {remoteConsulta && (
+            {remoteAppointment && (
               <div style={{ marginTop: 12, fontSize: 15, color: '#6B7A75', lineHeight: 1.5 }}>
                 O tablet deve mostrar a tela de assinatura para{' '}
-                <strong style={{ color: '#22302C' }}>{remoteConsulta.paciente}</strong>.
+                <strong style={{ color: '#22302C' }}>{remoteAppointment.patient}</strong>.
                 <br />Aguarde enquanto o paciente assina.
               </div>
             )}

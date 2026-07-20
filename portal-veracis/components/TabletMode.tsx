@@ -7,8 +7,8 @@ import { getSocket } from '@/lib/socket';
 export default function TabletMode() {
   const {
     tabletMode, setTabletMode,
-    consultas, selectedId,
-    patchConsulta, saveAssinatura,
+    appointments, selectedId,
+    patchAppointment, saveSignature,
     showToast,
   } = useStore();
 
@@ -17,8 +17,8 @@ export default function TabletMode() {
   const [drawing, setDrawing] = useState(false);
   const [hasInk, setHasInk] = useState(false);
 
-  const c = consultas.find(x => x.id === selectedId);
-  const primeiroNome = c ? c.paciente.split(' ')[0] : '';
+  const appointment = appointments.find(x => x.id === selectedId);
+  const firstName = appointment ? appointment.patient.split(' ')[0] : '';
 
   const setupCanvas = useCallback((el: HTMLCanvasElement | null) => {
     if (!el) return;
@@ -39,7 +39,6 @@ export default function TabletMode() {
   function getPos(e: React.PointerEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current!;
     const r = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
     return { x: (e.clientX - r.left), y: (e.clientY - r.top) };
   }
 
@@ -74,13 +73,12 @@ export default function TabletMode() {
   }
 
   function confirmSignature() {
-    if (!hasInk || !canvasRef.current || !c) return;
+    if (!hasInk || !canvasRef.current || !appointment) return;
     const dataUrl = canvasRef.current.toDataURL('image/png');
-    saveAssinatura(c.id, dataUrl);
-    patchConsulta(c.id, { status: 'assinado' });
-    // Notify other devices (desktop) that signing is done
+    saveSignature(appointment.id, dataUrl);
+    patchAppointment(appointment.id, { status: 'signed' });
     getSocket()?.emit('sign:done', {
-      consultaId: c.id,
+      consultaId: appointment.id,
       assinaturaPngBase64: dataUrl,
       hora: new Date().toISOString(),
     });
@@ -89,13 +87,12 @@ export default function TabletMode() {
 
   function finishTablet() {
     setTabletMode('off');
-    showToast('Assinatura de ' + (c?.paciente || '') + ' registrada com sucesso');
+    showToast('Assinatura de ' + (appointment?.patient || '') + ' registrada com sucesso');
   }
 
   function cancelTablet() {
-    // Notify other devices (desktop) that signing was cancelled
-    if (c) {
-      getSocket()?.emit('sign:cancel', { consultaId: c.id });
+    if (appointment) {
+      getSocket()?.emit('sign:cancel', { consultaId: appointment.id });
     }
     setTabletMode('off');
   }
@@ -126,20 +123,20 @@ export default function TabletMode() {
         <div style={{ flex:1, overflow:'auto', display:'flex', justifyContent:'center', padding:'32px 24px' }}>
           <div style={{ width:'100%', maxWidth:820, display:'flex', flexDirection:'column', gap:20 }}>
             <div>
-              <div style={{ fontSize:28, fontWeight:800 }}>Olá, {primeiroNome} 👋</div>
+              <div style={{ fontSize:28, fontWeight:800 }}>Olá, {firstName} 👋</div>
               <div style={{ fontSize:16, color:'#6B7A75', marginTop:6, lineHeight:1.5 }}>
                 Confira os dados do seu atendimento e assine no quadro abaixo para autorizar a guia do convênio.
               </div>
             </div>
 
             {/* Patient data */}
-            {c && (
+            {appointment && (
               <div style={{ background:'#FFFFFF', border:'1px solid #E5E3DD', borderRadius:16, padding:'22px 26px', display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:18 }}>
                 {[
-                  ['PACIENTE', c.paciente],
-                  ['ATENDIMENTO', `${c.tipo} · ${c.especialidade}`],
-                  ['PROFISSIONAL', c.medico],
-                  ['CONVÊNIO', `Unimed · ${c.carteira}`],
+                  ['PACIENTE', appointment.patient],
+                  ['ATENDIMENTO', `${appointment.serviceType} · ${appointment.specialty}`],
+                  ['PROFISSIONAL', appointment.doctor],
+                  ['CONVÊNIO', `Unimed · ${appointment.insuranceCard}`],
                 ].map(([label, value]) => (
                   <div key={label}>
                     <div style={{ fontSize:12, fontWeight:800, color:'#9AA6A1' }}>{label}</div>
@@ -201,7 +198,7 @@ export default function TabletMode() {
             <div style={{ width:84, height:84, borderRadius:'50%', background:'#E3F2E8', color:'#1D6B3C', fontSize:38, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 22px' }}>✓</div>
             <div style={{ fontSize:28, fontWeight:800 }}>Assinatura registrada!</div>
             <div style={{ fontSize:16, color:'#6B7A75', marginTop:10, lineHeight:1.5 }}>
-              Obrigado, {primeiroNome}. Por favor, devolva o tablet à recepção.
+              Obrigado, {firstName}. Por favor, devolva o tablet à recepção.
             </div>
             <button
               onClick={finishTablet}

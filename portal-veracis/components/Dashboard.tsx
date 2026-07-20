@@ -1,16 +1,15 @@
 'use client';
 
 import { useStore } from '@/lib/store';
-import { ST, VALOR, brl } from '@/lib/types';
-import type { Filter } from '@/lib/types';
+import type { Filter, Appointment } from '@/lib/types';
 import StatusPill from './StatusPill';
 
 const GRID = '58px 1.25fr 1.1fr 118px 0.8fr 1.2fr 86px 168px';
 
 export default function Dashboard() {
   const {
-    consultas, filter, setFilter,
-    patchConsulta, selectConsulta,
+    appointments, filter, setFilter,
+    patchAppointment, selectAppointment,
     showToast, role, devicesOnline,
   } = useStore();
 
@@ -19,52 +18,56 @@ export default function Dashboard() {
   const today = new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
   const todayLabel = today.charAt(0).toUpperCase() + today.slice(1);
 
-  const visible = consultas.filter(c => {
-    if (filter === 'baixar') return c.status === 'facial';
-    if (filter === 'assinar') return c.status === 'autorizado';
-    if (filter === 'concluidas') return ['assinado','papel','cancelado'].includes(c.status);
+  const visible = appointments.filter(c => {
+    if (filter === 'download') return c.status === 'facial';
+    if (filter === 'sign') return c.status === 'authorized';
+    if (filter === 'completed') return ['signed', 'paper', 'cancelled'].includes(c.status);
     return true;
   });
 
   // Summary card stats
-  const total    = consultas.length;
-  const pendFace = consultas.filter(c => c.status === 'facial').length;
-  const autori   = consultas.filter(c => c.status === 'autorizado').length;
-  const assina   = consultas.filter(c => c.status === 'assinado' || c.status === 'papel').length;
-  const realiz   = consultas.filter(c => c.realizada).length;
+  const total     = appointments.length;
+  const pendFace  = appointments.filter(c => c.status === 'facial').length;
+  const authorized = appointments.filter(c => c.status === 'authorized').length;
+  const signed    = appointments.filter(c => c.status === 'signed' || c.status === 'paper').length;
+  const completed = appointments.filter(c => c.completed).length;
 
   const cards = [
-    { label:'Consultas de hoje',     value:total,    icon:'📅', tint:'#E7F1EE', accent:'#0E6B5B', sub:'importadas do FeeGow' },
-    { label:'Pend. reconhec. facial', value:pendFace, icon:'👤', tint:'#FBF0DC', accent:'#8A5A12', sub:'aguardando paciente' },
-    { label:'Autorizadas',           value:autori,   icon:'✓',  tint:'#DDEEF9', accent:'#1E6EA7', sub:'prontas para assinar' },
-    { label:'Assinadas',             value:assina,   icon:'✍️', tint:'#E3F2E8', accent:'#1D6B3C', sub:'assinatura coletada' },
-    { label:'Realizadas',            value:realiz,   icon:'🩺', tint:'#EAF3F0', accent:'#0E6B5B', sub:'consulta confirmada' },
+    { label:'Consultas de hoje',      value:total,      icon:'📅', tint:'#E7F1EE', accent:'#0E6B5B', sub:'importadas do FeeGow' },
+    { label:'Pend. reconhec. facial', value:pendFace,   icon:'👤', tint:'#FBF0DC', accent:'#8A5A12', sub:'aguardando paciente' },
+    { label:'Autorizadas',            value:authorized, icon:'✓',  tint:'#DDEEF9', accent:'#1E6EA7', sub:'prontas para assinar' },
+    { label:'Assinadas',              value:signed,     icon:'✍️', tint:'#E3F2E8', accent:'#1D6B3C', sub:'assinatura coletada' },
+    { label:'Realizadas',             value:completed,  icon:'🩺', tint:'#EAF3F0', accent:'#0E6B5B', sub:'consulta confirmada' },
   ];
 
   const filters: { key: Filter; label: string }[] = [
-    { key:'todas',     label:'Todas' },
-    { key:'baixar',    label:'A baixar guia' },
-    { key:'assinar',   label:'P/ assinar' },
-    { key:'concluidas', label:'Concluídas' },
+    { key:'all',       label:'Todas' },
+    { key:'download',  label:'A baixar guia' },
+    { key:'sign',      label:'P/ assinar' },
+    { key:'completed', label:'Concluídas' },
   ];
 
-  function handleBaixar(c: (typeof consultas)[0]) {
-    if (!c.pedido) { showToast('Sem nº do pedido — aguarde a pré-autorização (Beth)'); return; }
-    if (c.enc && c.enc.usadas >= c.enc.total && c.enc.total > 1) { showToast('Pacote de sessões esgotado — anexe um novo encaminhamento'); return; }
-    patchConsulta(c.id, { status:'autorizado' });
-    showToast('Guia do pedido ' + c.pedido + ' baixada do TopSaúde — disponível para assinatura');
+  function handleDownload(c: Appointment) {
+    if (!c.authorizationNumber) { showToast('Sem nº do pedido — aguarde a pré-autorização (Beth)'); return; }
+    if (c.referral && c.referral.used >= c.referral.total && c.referral.total > 1) { showToast('Pacote de sessões esgotado — anexe um novo encaminhamento'); return; }
+    patchAppointment(c.id, { status:'authorized' });
+    showToast('Guia do pedido ' + c.authorizationNumber + ' baixada do TopSaúde — disponível para assinatura');
   }
 
-  function handleCancelar(c: (typeof consultas)[0]) {
-    patchConsulta(c.id, { status:'cancelado' });
-    showToast('Guia de ' + c.paciente + ' cancelada — não comparecimento registrado');
+  function handleCancel(c: Appointment) {
+    patchAppointment(c.id, { status:'cancelled' });
+    showToast('Guia de ' + c.patient + ' cancelada — não comparecimento registrado');
   }
 
-  function savePedido(id: number, paciente: string, val: string) {
+  function saveAuthorizationNumber(id: number, patient: string, val: string) {
     const v = val.trim();
     if (!v) return;
-    patchConsulta(id, { pedido: v, status:'facial' });
-    showToast('Pedido ' + v + ' vinculado a ' + paciente);
+    patchAppointment(id, { authorizationNumber: v, status:'facial' });
+    showToast('Pedido ' + v + ' vinculado a ' + patient);
+  }
+
+  async function syncFeeGow() {
+    // TODO: integrar com API do FeeGow
   }
 
   return (
@@ -87,6 +90,20 @@ export default function Dashboard() {
               Tablet conectado
             </div>
           )}
+          <button
+            onClick={syncFeeGow}
+            style={{
+              display:'flex', alignItems:'center', gap:7,
+              padding:'9px 14px', border:'1px solid #C8D9D5', borderRadius:9,
+              background:'#FFFFFF', color:'#0A4A40', fontSize:13, fontWeight:700,
+              fontFamily:'inherit', cursor:'pointer',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#F0F7F5'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
+            title="Sincronizar agendamentos do FeeGow"
+          >
+            ↻ Sincronizar FeeGow
+          </button>
           <div style={{ fontSize:13, color:'#6B7A75', background:'#FFFFFF', border:'1px solid #E5E3DD', borderRadius:9, padding:'9px 14px' }}>
             Última sincronização FeeGow: hoje às 07:02
           </div>
@@ -148,11 +165,11 @@ export default function Dashboard() {
 
         {/* Rows */}
         {visible.map((c) => {
-          const pacoteEsg = !!(c.enc && c.enc.total > 1 && c.enc.usadas >= c.enc.total);
-          const podeBaixar = c.status === 'facial' && !!c.pedido && !pacoteEsg;
-          const podeAssinar = c.status === 'autorizado';
-          const podeCancelar = !['assinado','papel','cancelado'].includes(c.status) && !c.realizada;
-          const temPacote = !!(c.enc && c.enc.total > 1);
+          const referralExhausted = !!(c.referral && c.referral.total > 1 && c.referral.used >= c.referral.total);
+          const canDownload = c.status === 'facial' && !!c.authorizationNumber && !referralExhausted;
+          const canSign = c.status === 'authorized';
+          const canCancel = !['signed', 'paper', 'cancelled'].includes(c.status) && !c.completed;
+          const hasPackage = !!(c.referral && c.referral.total > 1);
 
           return (
             <div
@@ -161,35 +178,35 @@ export default function Dashboard() {
                 display:'grid', gridTemplateColumns:GRID, gap:12,
                 padding:'13px 20px', alignItems:'center',
                 borderBottom:'1px solid #F3F2ED', fontSize:14,
-                opacity: c.status === 'cancelado' ? 0.55 : 1,
+                opacity: c.status === 'cancelled' ? 0.55 : 1,
                 cursor:'default',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = '#FAFAF7')}
               onMouseLeave={(e) => (e.currentTarget.style.background = '')}
             >
-              {/* Hora */}
-              <div style={{ fontWeight:700, color:'#6B7A75' }}>{c.hora}</div>
+              {/* Time */}
+              <div style={{ fontWeight:700, color:'#6B7A75' }}>{c.time}</div>
 
-              {/* Paciente */}
+              {/* Patient */}
               <div>
-                <div style={{ fontWeight:700 }}>{c.paciente}</div>
-                <div style={{ fontSize:12, color:'#9AA6A1' }}>Unimed · {c.carteira}</div>
+                <div style={{ fontWeight:700 }}>{c.patient}</div>
+                <div style={{ fontSize:12, color:'#9AA6A1' }}>Unimed · {c.insuranceCard}</div>
               </div>
 
-              {/* Profissional */}
+              {/* Doctor */}
               <div>
-                <div style={{ fontWeight:600 }}>{c.medico}</div>
-                <div style={{ fontSize:12, color:'#9AA6A1' }}>{c.especialidade}</div>
+                <div style={{ fontWeight:600 }}>{c.doctor}</div>
+                <div style={{ fontSize:12, color:'#9AA6A1' }}>{c.specialty}</div>
               </div>
 
-              {/* Nº Pedido */}
+              {/* Authorization number */}
               <div>
-                {c.pedido ? (
-                  <div style={{ fontWeight:700, fontSize:13, color:'#22302C', fontVariantNumeric:'tabular-nums' }}>{c.pedido}</div>
-                ) : c.status !== 'cancelado' ? (
+                {c.authorizationNumber ? (
+                  <div style={{ fontWeight:700, fontSize:13, color:'#22302C', fontVariantNumeric:'tabular-nums' }}>{c.authorizationNumber}</div>
+                ) : c.status !== 'cancelled' ? (
                   <input
-                    onKeyDown={(e) => { if (e.key === 'Enter') { savePedido(c.id, c.paciente, e.currentTarget.value); e.currentTarget.value = ''; } }}
-                    onBlur={(e) => { savePedido(c.id, c.paciente, e.currentTarget.value); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { saveAuthorizationNumber(c.id, c.patient, e.currentTarget.value); e.currentTarget.value = ''; } }}
+                    onBlur={(e) => { saveAuthorizationNumber(c.id, c.patient, e.currentTarget.value); }}
                     placeholder="Digitar nº"
                     title="Nº do pedido gerado na pré-autorização do TopSaúde — Enter para salvar"
                     style={{ width:'100%', padding:'7px 9px', border:'1.5px dashed #C9A24B', borderRadius:8, fontSize:13, fontFamily:'inherit', background:'#FFFBF2', outline:'none' }}
@@ -199,12 +216,12 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {/* Guia */}
+              {/* Service type */}
               <div>
-                <div style={{ fontSize:13, color:'#6B7A75', fontWeight:600 }}>{c.tipo}</div>
-                {temPacote && (
-                  <div style={{ fontSize:11.5, fontWeight:800, color: pacoteEsg ? '#A33B2E' : '#0E6B5B', marginTop:2 }}>
-                    Sessão {c.enc!.usadas} de {c.enc!.total}
+                <div style={{ fontSize:13, color:'#6B7A75', fontWeight:600 }}>{c.serviceType}</div>
+                {hasPackage && (
+                  <div style={{ fontSize:11.5, fontWeight:800, color: referralExhausted ? '#A33B2E' : '#0E6B5B', marginTop:2 }}>
+                    Sessão {c.referral!.used} de {c.referral!.total}
                   </div>
                 )}
               </div>
@@ -212,19 +229,19 @@ export default function Dashboard() {
               {/* Status */}
               <div><StatusPill status={c.status} /></div>
 
-              {/* Realizada */}
+              {/* Completed */}
               <div>
-                {c.realizada
+                {c.completed
                   ? <span style={{ fontSize:12, fontWeight:800, color:'#1D6B3C' }}>✓ Sim</span>
                   : <span style={{ fontSize:12, color:'#B9C6C1', fontWeight:700 }}>—</span>
                 }
               </div>
 
-              {/* Ações */}
+              {/* Actions */}
               <div style={{ display:'flex', justifyContent:'flex-end', alignItems:'center', gap:6 }}>
-                {podeBaixar && (
+                {canDownload && (
                   <button
-                    onClick={() => handleBaixar(c)}
+                    onClick={() => handleDownload(c)}
                     title="Confirme que o paciente fez o reconhecimento facial e baixe a guia do TopSaúde"
                     style={{ flex:'0 0 160px', width:160, minWidth:160, padding:'9px 0', border:'none', borderRadius:9, background:'#1E6EA7', color:'#FFFFFF', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = '#175A8A')}
@@ -233,9 +250,9 @@ export default function Dashboard() {
                     Baixar guia ↓
                   </button>
                 )}
-                {podeAssinar && (
+                {canSign && (
                   <button
-                    onClick={() => selectConsulta(c.id)}
+                    onClick={() => selectAppointment(c.id)}
                     style={{ flex:'0 0 160px', width:160, minWidth:160, padding:'9px 0', border:'none', borderRadius:9, background:'#0E6B5B', color:'#FFFFFF', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = '#0A4A40')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = '#0E6B5B')}
@@ -244,7 +261,7 @@ export default function Dashboard() {
                   </button>
                 )}
                 <button
-                  onClick={() => selectConsulta(c.id)}
+                  onClick={() => selectAppointment(c.id)}
                   title="Ver detalhes da guia"
                   style={{ width:32, height:32, border:'1px solid #D8D6CF', borderRadius:8, background:'#FFFFFF', color:'#6B7A75', fontSize:14, cursor:'pointer', flexShrink:0 }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = '#F3F2ED')}
@@ -252,9 +269,9 @@ export default function Dashboard() {
                 >
                   👁
                 </button>
-                {podeCancelar && (
+                {canCancel && (
                   <button
-                    onClick={() => handleCancelar(c)}
+                    onClick={() => handleCancel(c)}
                     title="Não compareceu — cancelar pré-autorização"
                     style={{ width:32, height:32, border:'1px solid #E8D5D1', borderRadius:8, background:'#FFFFFF', color:'#A33B2E', fontSize:13, cursor:'pointer', flexShrink:0 }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = '#F7E4E1')}

@@ -6,6 +6,7 @@ import Dashboard from './Dashboard';
 import GuiaDetail from './GuiaDetail';
 import Relatorios from './Relatorios';
 import TiposConsulta from './TiposConsulta';
+import CompartilhamentoArquivos from './CompartilhamentoArquivos';
 
 export default function AppShell() {
   const { tab } = useStore();
@@ -16,8 +17,9 @@ export default function AppShell() {
       <div style={{ flex:1, minWidth:0, overflowX:'auto' }}>
         {tab === 'dashboard' && <Dashboard />}
         {tab === 'detail'    && <GuiaDetail />}
-        {tab === 'relatorio' && <Relatorios />}
-        {tab === 'tipos'     && <TiposConsulta />}
+        {tab === 'reports'   && <Relatorios />}
+        {tab === 'types'     && <TiposConsulta />}
+        {tab === 'files'     && <CompartilhamentoArquivos />}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { Consulta, TipoConsulta, ChatMessage, Tab, Filter, Periodo, Role } from './types';
-import { CONSULTAS_HOJE, TIPOS_CONSULTA } from './mock-data';
+import { Appointment, AppointmentType, SharedFile, ChatMessage, Tab, Filter, Period, Role } from './types';
+import { TODAY_APPOINTMENTS, APPOINTMENT_TYPES, SHARED_FILES_MOCK } from './mock-data';
 
 interface StoreState {
   // Auth
@@ -17,49 +17,54 @@ interface StoreState {
   setTab: (t: Tab) => void;
 
   // Agenda
-  consultas: Consulta[];
+  appointments: Appointment[];
   filter: Filter;
   setFilter: (f: Filter) => void;
-  patchConsulta: (id: number, patch: Partial<Consulta>) => void;
+  patchAppointment: (id: number, patch: Partial<Appointment>) => void;
 
   // Detail
   selectedId: number | null;
-  selectedRep: Consulta | null;
-  selectConsulta: (id: number | null) => void;
-  selectRep: (c: Consulta | null) => void;
+  selectedRep: Appointment | null;
+  selectAppointment: (id: number | null) => void;
+  selectRep: (c: Appointment | null) => void;
 
   // Tablet signature mode
-  // 'off'    — normal state
+  // 'off'     — normal state
   // 'signing' — this device shows the canvas signing screen
-  // 'done'   — signing completed locally, showing success screen
-  // 'remote' — desktop waiting for the tablet to sign (shows overlay)
+  // 'done'    — signing completed locally, showing success screen
+  // 'remote'  — desktop waiting for the tablet to sign (shows overlay)
   tabletMode: 'off' | 'signing' | 'done' | 'remote';
   setTabletMode: (m: 'off' | 'signing' | 'done' | 'remote') => void;
-  assinaturas: Record<number, string>;
-  saveAssinatura: (id: number, dataUrl: string) => void;
+  signatures: Record<number, string>;
+  saveSignature: (id: number, dataUrl: string) => void;
 
   // Remote signing coordination
-  remoteSignConsultaId: number | null;
-  startRemoteSigning: (consultaId: number) => void;
+  remoteSignAppointmentId: number | null;
+  startRemoteSigning: (appointmentId: number) => void;
   clearRemoteSigning: () => void;
 
   // Peer presence (from Socket.IO 'presence' event)
   devicesOnline: number;
   setDevicesOnline: (n: number) => void;
 
-  // Novo pacote
-  novoPacoteQtd: number;
-  setNovoPacoteQtd: (n: number) => void;
+  // Session package
+  newPackageCount: number;
+  setNewPackageCount: (n: number) => void;
 
-  // Tipos
-  tipos: TipoConsulta[];
-  addTipo: (t: Omit<TipoConsulta, 'id'>) => void;
-  updateTipo: (id: number, patch: Partial<TipoConsulta>) => void;
-  removeTipo: (id: number) => void;
+  // Appointment types
+  appointmentTypes: AppointmentType[];
+  addAppointmentType: (t: Omit<AppointmentType, 'id'>) => void;
+  updateAppointmentType: (id: number, patch: Partial<AppointmentType>) => void;
+  removeAppointmentType: (id: number) => void;
 
-  // Relatorio
-  periodo: Periodo;
-  setPeriodo: (p: Periodo) => void;
+  // File sharing
+  sharedFiles: SharedFile[];
+  addSharedFile: (p: Omit<SharedFile, 'id'>) => void;
+  removeSharedFile: (id: number) => void;
+
+  // Reports
+  period: Period;
+  setPeriod: (p: Period) => void;
 
   // Chat
   chat: ChatMessage[];
@@ -75,9 +80,9 @@ interface StoreState {
 
 export const useStore = create<StoreState>((set, get) => ({
   isLoggedIn: false,
-  role: 'recepcao',
+  role: 'reception',
   userId: '',
-  loginRole: 'recepcao',
+  loginRole: 'reception',
   setLoginRole: (r) => set({ loginRole: r }),
   login: () => set({ isLoggedIn: true, role: get().loginRole, userId: get().loginRole }),
   logout: () => set({
@@ -87,50 +92,56 @@ export const useStore = create<StoreState>((set, get) => ({
     selectedId: null,
     selectedRep: null,
     tabletMode: 'off',
-    remoteSignConsultaId: null,
+    remoteSignAppointmentId: null,
     devicesOnline: 0,
   }),
 
   tab: 'dashboard',
   setTab: (t) => set({ tab: t }),
 
-  consultas: CONSULTAS_HOJE,
-  filter: 'todas',
+  appointments: TODAY_APPOINTMENTS,
+  filter: 'all',
   setFilter: (f) => set({ filter: f }),
-  patchConsulta: (id, patch) =>
-    set((s) => ({ consultas: s.consultas.map((c) => (c.id === id ? { ...c, ...patch } : c)) })),
+  patchAppointment: (id, patch) =>
+    set((s) => ({ appointments: s.appointments.map((c) => (c.id === id ? { ...c, ...patch } : c)) })),
 
   selectedId: null,
   selectedRep: null,
-  selectConsulta: (id) => set({ selectedId: id, selectedRep: null, tab: id !== null ? 'detail' : 'dashboard' }),
-  selectRep: (c) => set({ selectedRep: c, selectedId: null, tab: c !== null ? 'detail' : 'relatorio' }),
+  selectAppointment: (id) => set({ selectedId: id, selectedRep: null, tab: id !== null ? 'detail' : 'dashboard' }),
+  selectRep: (c) => set({ selectedRep: c, selectedId: null, tab: c !== null ? 'detail' : 'reports' }),
 
   tabletMode: 'off',
   setTabletMode: (m) => set({ tabletMode: m }),
-  assinaturas: {},
-  saveAssinatura: (id, dataUrl) =>
-    set((s) => ({ assinaturas: { ...s.assinaturas, [id]: dataUrl } })),
+  signatures: {},
+  saveSignature: (id, dataUrl) =>
+    set((s) => ({ signatures: { ...s.signatures, [id]: dataUrl } })),
 
-  remoteSignConsultaId: null,
-  startRemoteSigning: (consultaId) => set({ tabletMode: 'remote', remoteSignConsultaId: consultaId }),
-  clearRemoteSigning: () => set({ tabletMode: 'off', remoteSignConsultaId: null }),
+  remoteSignAppointmentId: null,
+  startRemoteSigning: (appointmentId) => set({ tabletMode: 'remote', remoteSignAppointmentId: appointmentId }),
+  clearRemoteSigning: () => set({ tabletMode: 'off', remoteSignAppointmentId: null }),
 
   devicesOnline: 0,
   setDevicesOnline: (n) => set({ devicesOnline: n }),
 
-  novoPacoteQtd: 10,
-  setNovoPacoteQtd: (n) => set({ novoPacoteQtd: n }),
+  newPackageCount: 10,
+  setNewPackageCount: (n) => set({ newPackageCount: n }),
 
-  tipos: TIPOS_CONSULTA,
-  addTipo: (t) =>
-    set((s) => ({ tipos: [...s.tipos, { ...t, id: Date.now() }] })),
-  updateTipo: (id, patch) =>
-    set((s) => ({ tipos: s.tipos.map((t) => (t.id === id ? { ...t, ...patch } : t)) })),
-  removeTipo: (id) =>
-    set((s) => ({ tipos: s.tipos.filter((t) => t.id !== id) })),
+  appointmentTypes: APPOINTMENT_TYPES,
+  addAppointmentType: (t) =>
+    set((s) => ({ appointmentTypes: [...s.appointmentTypes, { ...t, id: Date.now() }] })),
+  updateAppointmentType: (id, patch) =>
+    set((s) => ({ appointmentTypes: s.appointmentTypes.map((t) => (t.id === id ? { ...t, ...patch } : t)) })),
+  removeAppointmentType: (id) =>
+    set((s) => ({ appointmentTypes: s.appointmentTypes.filter((t) => t.id !== id) })),
 
-  periodo: 'mes',
-  setPeriodo: (p) => set({ periodo: p }),
+  sharedFiles: SHARED_FILES_MOCK,
+  addSharedFile: (p) =>
+    set((s) => ({ sharedFiles: [{ ...p, id: Date.now() }, ...s.sharedFiles] })),
+  removeSharedFile: (id) =>
+    set((s) => ({ sharedFiles: s.sharedFiles.filter((p) => p.id !== id) })),
+
+  period: 'month',
+  setPeriod: (p) => set({ period: p }),
 
   chat: [{ role: 'assistant', text: '✦ Olá! Sou a Vera! Pergunte qualquer informação sobre seu negócio que te respondo!' }],
   chatBusy: false,
