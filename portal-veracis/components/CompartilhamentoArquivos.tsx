@@ -46,6 +46,7 @@ export default function CompartilhamentoArquivos() {
   const [filterAppointment, setFilterAppointment] = useState('');
   const [filterDateStart, setFilterDateStart]     = useState('');
   const [filterDateEnd, setFilterDateEnd]         = useState('');
+  const [filterFileName, setFilterFileName]       = useState('');
 
   // --- new file post ---
   const [newProvider, setNewProvider]           = useState('');
@@ -103,6 +104,7 @@ export default function CompartilhamentoArquivos() {
     .filter((f) => !filterAppointment || f.appointmentLabel === filterAppointment)
     .filter((f) => !filterDateStart   || f.postedAt         >= filterDateStart)
     .filter((f) => !filterDateEnd     || f.postedAt         <= filterDateEnd)
+    .filter((f) => !filterFileName    || f.fileName.toLowerCase().includes(filterFileName.toLowerCase()))
     .sort((a, b) => {
       if (a.postedAt !== b.postedAt) return b.postedAt.localeCompare(a.postedAt); // date DESC
       if (a.provider !== b.provider) return a.provider.localeCompare(b.provider);
@@ -165,10 +167,11 @@ export default function CompartilhamentoArquivos() {
     setFilterAppointment('');
     setFilterDateStart('');
     setFilterDateEnd('');
+    setFilterFileName('');
   }
 
   const canAdd = !!newProvider && !!newAppointmentLabel && !!newFile;
-  const hasFilters = filterProvider || filterAppointment || filterDateStart || filterDateEnd;
+  const hasFilters = filterProvider || filterAppointment || filterDateStart || filterDateEnd || filterFileName;
 
   // Split appointment label: "19/07 · Patient · Specialty"
   function splitLabel(label: string) {
@@ -195,7 +198,7 @@ export default function CompartilhamentoArquivos() {
       {/* ── Filters ── */}
       <div style={{ background: '#FFFFFF', border: '1px solid #E5E3DD', borderRadius: 14, padding: '18px 20px' }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: '#9AA6A1', letterSpacing: '0.06em', marginBottom: 12 }}>FILTROS</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.8fr 1fr 1fr auto', gap: 10, alignItems: 'end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 0.9fr 0.9fr 1fr auto', gap: 10, alignItems: 'end' }}>
 
           {/* FILTER-01 Provider */}
           <div>
@@ -225,6 +228,18 @@ export default function CompartilhamentoArquivos() {
           <div>
             <div style={{ ...FILTER_LABEL, marginBottom: 5 }}>DATA POSTAGEM FIM</div>
             <input type="date" value={filterDateEnd} onChange={(e) => setFilterDateEnd(e.target.value)} style={DATE_INPUT} />
+          </div>
+
+          {/* FILTER-05 Document name */}
+          <div>
+            <div style={{ ...FILTER_LABEL, marginBottom: 5 }}>NOME DO DOCUMENTO</div>
+            <input
+              type="text"
+              value={filterFileName}
+              onChange={(e) => setFilterFileName(e.target.value)}
+              placeholder="Trecho do nome…"
+              style={DATE_INPUT}
+            />
           </div>
 
           {/* Clear */}

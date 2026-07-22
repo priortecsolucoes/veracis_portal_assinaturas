@@ -47,14 +47,14 @@ export default function GuiaDetail() {
     showToast('Assinatura em papel registrada para ' + c.patient);
   }
 
-  function handleMarkCompleted() {
-    patchAppointment(c.id, { completed:true });
-    showToast('Consulta de ' + c.patient + ' marcada como realizada');
+  function handleMarkAtendido() {
+    patchAppointment(c.id, { status:'atendido' });
+    showToast('Consulta de ' + c.patient + ' marcada como atendida');
   }
 
   function handleCancel() {
     patchAppointment(c.id, { status:'cancelled' });
-    showToast('Não comparecimento registrado para ' + c.patient);
+    showToast('Guia de ' + c.patient + ' cancelada');
     goBack();
   }
 
@@ -68,9 +68,8 @@ export default function GuiaDetail() {
   const awaitingAuthorization = c.status === 'facial' && !c.authorizationNumber && isToday;
   const canSign = c.status === 'authorized' && isToday;
   const hasSignature = !!(signature) || c.status === 'paper';
-  const canMarkPresence = (c.status === 'signed' || c.status === 'paper') && isToday;
-  const canMarkCompleted = canMarkPresence && !c.completed;
-  const canMarkNoShow = canMarkPresence && !c.completed;
+  const canMarkAtendido = (c.status === 'signed' || c.status === 'paper') && isToday;
+  const canCancel = !['cancelled', 'atendido'].includes(c.status) && isToday;
 
   const referralPct = referral && referral.total > 0
     ? Math.round((referral.used / referral.total) * 100) + '%'
@@ -93,8 +92,8 @@ export default function GuiaDetail() {
           <div style={{ fontSize:20, fontWeight:800 }}>Guia de {c.serviceType} — {c.patient}</div>
           <div style={{ color:'#6B7A75', fontSize:13, marginTop:2 }}>{c.doctor} · {c.specialty} · {c.time}</div>
         </div>
-        {c.completed && (
-          <span style={{ padding:'6px 14px', borderRadius:999, background:'#E3F2E8', color:'#1D6B3C', fontSize:13, fontWeight:800 }}>✓ Consulta realizada</span>
+        {c.status === 'atendido' && (
+          <span style={{ padding:'6px 14px', borderRadius:999, background:'#E3F2E8', color:'#1D6B3C', fontSize:13, fontWeight:800 }}>✓ Atendido</span>
         )}
         <StatusPill status={c.status} />
       </div>
@@ -277,32 +276,29 @@ export default function GuiaDetail() {
             </div>
           )}
 
-          {/* Presence and completion */}
-          {canMarkPresence && (
+          {/* Presence and cancellation */}
+          {(canMarkAtendido || canCancel) && (
             <div style={{ background:'#FFFFFF', border:'1px solid #E5E3DD', borderRadius:14, padding:'18px 20px' }}>
-              <div style={{ fontSize:13, fontWeight:800, color:'#6B7A75', marginBottom:6 }}>PRESENÇA E BAIXA</div>
-              <div style={{ fontSize:12.5, color:'#9AA6A1', lineHeight:1.5, marginBottom:12 }}>
-                Assinatura e realização da consulta são eventos independentes — o faturamento depende dos dois registros.
-              </div>
+              <div style={{ fontSize:13, fontWeight:800, color:'#6B7A75', marginBottom:12 }}>AÇÕES</div>
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                {canMarkCompleted && (
+                {canMarkAtendido && (
                   <button
-                    onClick={handleMarkCompleted}
+                    onClick={handleMarkAtendido}
                     style={{ width:'100%', padding:11, border:'1px solid #BFDCC9', borderRadius:10, background:'#F2F9F4', color:'#1D6B3C', fontFamily:'inherit', fontSize:13, fontWeight:800, cursor:'pointer' }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = '#E3F2E8')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = '#F2F9F4')}
                   >
-                    ✓ Marcar consulta como realizada
+                    ✓ Marcar como Atendido
                   </button>
                 )}
-                {canMarkNoShow && (
+                {canCancel && (
                   <button
                     onClick={handleCancel}
                     style={{ width:'100%', padding:11, border:'1px solid #E8D5D1', borderRadius:10, background:'#FFFFFF', color:'#A33B2E', fontFamily:'inherit', fontSize:13, fontWeight:800, cursor:'pointer' }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = '#F7E4E1')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = '#FFFFFF')}
                   >
-                    ✕ Não compareceu — cancelar pré-autorização
+                    ✕ Cancelar guia
                   </button>
                 )}
               </div>

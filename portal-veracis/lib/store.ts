@@ -1,12 +1,13 @@
 import { create } from 'zustand';
-import { Appointment, AppointmentType, SharedFile, ChatMessage, Tab, Filter, Period, Role } from './types';
-import { TODAY_APPOINTMENTS, APPOINTMENT_TYPES, SHARED_FILES_MOCK } from './mock-data';
+import { Appointment, AppointmentType, SharedFile, ChatMessage, Tab, Filter, Period, Role, User, Group, ActionLog, SystemSettings } from './types';
+import { TODAY_APPOINTMENTS, APPOINTMENT_TYPES, SHARED_FILES_MOCK, MOCK_USERS, MOCK_GROUPS, MOCK_ACTION_LOGS } from './mock-data';
 
 interface StoreState {
   // Auth
   isLoggedIn: boolean;
   role: Role;
   userId: string;
+  allowedTabs: Tab[];
   loginRole: Role;
   setLoginRole: (r: Role) => void;
   login: () => void;
@@ -72,6 +73,26 @@ interface StoreState {
   addChatMessage: (m: ChatMessage) => void;
   setChatBusy: (b: boolean) => void;
 
+  // Users (D-02)
+  users: User[];
+  addUser: (u: Omit<User, 'id'>) => void;
+  updateUser: (id: number, patch: Partial<User>) => void;
+  removeUser: (id: number) => void;
+
+  // Groups (A-03)
+  groups: Group[];
+  addGroup: (g: Omit<Group, 'id'>) => void;
+  updateGroup: (id: number, patch: Partial<Group>) => void;
+  removeGroup: (id: number) => void;
+
+  // Action logs (D-03)
+  actionLogs: ActionLog[];
+  logAction: (action: string) => void;
+
+  // Settings (D-12)
+  settings: SystemSettings;
+  updateSettings: (patch: Partial<SystemSettings>) => void;
+
   // Toast
   toast: string | null;
   showToast: (msg: string) => void;
@@ -82,19 +103,33 @@ export const useStore = create<StoreState>((set, get) => ({
   isLoggedIn: false,
   role: 'reception',
   userId: '',
+  allowedTabs: [],
   loginRole: 'reception',
   setLoginRole: (r) => set({ loginRole: r }),
-  login: () => set({ isLoggedIn: true, role: get().loginRole, userId: get().loginRole }),
-  logout: () => set({
-    isLoggedIn: false,
-    userId: '',
-    tab: 'dashboard',
-    selectedId: null,
-    selectedRep: null,
-    tabletMode: 'off',
-    remoteSignAppointmentId: null,
-    devicesOnline: 0,
-  }),
+  login: () => {
+    const { loginRole, groups, users } = get();
+    const role = loginRole;
+    const userId = role === 'billing' ? 'beth@clinicaveracis.com.br' : 'recepcao@clinicaveracis.com.br';
+    const user = users.find((u) => u.login === userId);
+    const group = user ? groups.find((g) => g.id === user.groupId) : undefined;
+    const allowedTabs: Tab[] = group ? group.allowedTabs : (role === 'billing' ? ['dashboard','reports','files','types','users','groups','history','settings'] : ['dashboard','reports','files']);
+    set({ isLoggedIn: true, role, userId, allowedTabs });
+    get().logAction('Login no sistema');
+  },
+  logout: () => {
+    get().logAction('Logout do sistema');
+    set({
+      isLoggedIn: false,
+      userId: '',
+      allowedTabs: [],
+      tab: 'dashboard',
+      selectedId: null,
+      selectedRep: null,
+      tabletMode: 'off',
+      remoteSignAppointmentId: null,
+      devicesOnline: 0,
+    });
+  },
 
   tab: 'dashboard',
   setTab: (t) => set({ tab: t }),
@@ -147,6 +182,44 @@ export const useStore = create<StoreState>((set, get) => ({
   chatBusy: false,
   addChatMessage: (m) => set((s) => ({ chat: [...s.chat, m] })),
   setChatBusy: (b) => set({ chatBusy: b }),
+
+  users: MOCK_USERS,
+  addUser: (u) =>
+    set((s) => ({ users: [...s.users, { ...u, id: Date.now() }] })),
+  updateUser: (id, patch) =>
+    set((s) => ({ users: s.users.map((u) => (u.id === id ? { ...u, ...patch } : u)) })),
+  removeUser: (id) =>
+    set((s) => ({ users: s.users.filter((u) => u.id !== id) })),
+
+  groups: MOCK_GROUPS,
+  addGroup: (g) =>
+    set((s) => ({ groups: [...s.groups, { ...g, id: Date.now() }] })),
+  updateGroup: (id, patch) =>
+    set((s) => ({ groups: s.groups.map((g) => (g.id === id ? { ...g, ...patch } : g)) })),
+  removeGroup: (id) =>
+    set((s) => ({ groups: s.groups.filter((g) => g.id !== id) })),
+
+  actionLogs: MOCK_ACTION_LOGS,
+  logAction: (action) => {
+    const { userId } = get();
+    const entry: ActionLog = {
+      id: Date.now(),
+      login: userId || 'sistema',
+      action,
+      timestamp: new Date().toISOString(),
+    };
+    set((s) => ({ actionLogs: [entry, ...s.actionLogs] }));
+  },
+
+  settings: {
+    rtSignatureDataUrl: null,
+    syncIntervalMinutes: 30,
+    feegowApiKey: '',
+    topsaudeUser: '',
+    topsaudePassword: '',
+  },
+  updateSettings: (patch) =>
+    set((s) => ({ settings: { ...s.settings, ...patch } })),
 
   toast: null,
   _toastTimer: null,

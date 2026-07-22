@@ -7,8 +7,8 @@ import StatusPill from './StatusPill';
 import type { Appointment, Period } from '@/lib/types';
 
 export default function Relatorios() {
-  const { role, period, setPeriod, selectRep, appointments } = useStore();
-  const isBilling = role === 'billing';
+  const { allowedTabs, period, setPeriod, selectRep, appointments } = useStore();
+  const isBilling = allowedTabs.includes('types');
 
   const today = new Date();
   function cutoffDays(days: number) {
@@ -40,7 +40,7 @@ export default function Relatorios() {
   const totalRows = rows.length;
   const signedCount = rows.filter(r => r.status === 'signed' || r.status === 'paper').length;
   const cancelledCount = rows.filter(r => r.status === 'cancelled').length;
-  const completedCount = rows.filter(r => r.completed).length;
+  const completedCount = rows.filter(r => r.status === 'atendido').length;
   const totalAmount = rows.reduce((sum, r) => sum + (SERVICE_RATES[r.serviceType] || 0), 0);
 
   const summaryCards = [
@@ -49,7 +49,7 @@ export default function Relatorios() {
     { label:'Canceladas',     value: String(cancelledCount), accent:'#A33B2E' },
     ...(isBilling
       ? [{ label:'Valor total', value: brl(totalAmount), accent:'#0E6B5B' }]
-      : [{ label:'Realizadas', value: String(completedCount), accent:'#0E6B5B' }]
+      : [{ label:'Atendidas', value: String(completedCount), accent:'#0E6B5B' }]
     ),
   ];
 
@@ -60,10 +60,10 @@ export default function Relatorios() {
   const periodLabel = `Últimos ${activePeriod.days === 999 ? '~40' : activePeriod.days} dias · Convênio Unimed`;
 
   function exportCsv() {
-    const header = ['Data','Paciente','Profissional','Nº Pedido','Guia','Status','Realizada', ...(isBilling ? ['Valor'] : [])].join(',');
+    const header = ['Data','Paciente','Profissional','Nº Pedido','Guia','Status','Atendida', ...(isBilling ? ['Valor'] : [])].join(',');
     const lines = rows.map(r => [
       r.date, r.patient, r.doctor, r.authorizationNumber || '', r.serviceType,
-      ST[r.status].label, r.completed ? 'Sim' : 'Não',
+      ST[r.status].label, r.status === 'atendido' ? 'Sim' : 'Não',
       ...(isBilling ? [brl(SERVICE_RATES[r.serviceType] || 0)] : []),
     ].map(v => `"${v}"`).join(','));
     const csv = [header, ...lines].join('\n');
@@ -123,7 +123,7 @@ export default function Relatorios() {
         </div>
 
         {rows.map((r) => {
-          const completedColor = r.completed ? '#1D6B3C' : '#B9C6C1';
+          const completedColor = r.status === 'atendido' ? '#1D6B3C' : '#B9C6C1';
           return (
             <div
               key={r.id}
@@ -137,7 +137,7 @@ export default function Relatorios() {
               <div style={{ fontSize:13, fontWeight:700, fontVariantNumeric:'tabular-nums' }}>{r.authorizationNumber || '—'}</div>
               <div style={{ fontSize:13, color:'#6B7A75', fontWeight:600 }}>{r.serviceType}</div>
               <div><StatusPill status={r.status} size="sm" /></div>
-              <div style={{ fontSize:12, fontWeight:800, color:completedColor }}>{r.completed ? '✓ Sim' : '—'}</div>
+              <div style={{ fontSize:12, fontWeight:800, color:completedColor }}>{r.status === 'atendido' ? '✓ Sim' : '—'}</div>
               {isBilling && <div style={{ textAlign:'right', fontWeight:700, fontVariantNumeric:'tabular-nums' }}>{brl(SERVICE_RATES[r.serviceType] || 0)}</div>}
               <div style={{ textAlign:'right' }}>
                 <button

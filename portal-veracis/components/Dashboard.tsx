@@ -3,14 +3,23 @@
 import { useStore } from '@/lib/store';
 import type { Filter, Appointment } from '@/lib/types';
 import StatusPill from './StatusPill';
+import { HISTORY, SPECIALTY_CODES } from '@/lib/mock-data';
 
-const GRID = '58px 1.25fr 1.1fr 118px 0.8fr 1.2fr 86px 168px';
+const GRID = '58px 1.25fr 1.1fr 118px 0.95fr 1.2fr 86px 168px';
+
+// Appointments from history that are still pending (Pendentes do Passado)
+const PENDING_HISTORY = HISTORY.filter((h) => h.status === 'facial' || h.status === 'authorized');
+
+// Build a set of "patient|specialty" present in history for RN-05 duplicate check
+const HISTORY_PATIENT_SPECIALTY = new Set(
+  HISTORY.map((h) => `${h.patient}|${h.specialty}`)
+);
 
 export default function Dashboard() {
   const {
     appointments, filter, setFilter,
     patchAppointment, selectAppointment,
-    showToast, role, devicesOnline,
+    showToast, logAction, devicesOnline,
   } = useStore();
 
   const peerOnline = devicesOnline >= 2;
@@ -18,26 +27,29 @@ export default function Dashboard() {
   const today = new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
   const todayLabel = today.charAt(0).toUpperCase() + today.slice(1);
 
-  const visible = appointments.filter(c => {
-    if (filter === 'download') return c.status === 'facial';
-    if (filter === 'sign') return c.status === 'authorized';
-    if (filter === 'completed') return ['signed', 'paper', 'cancelled'].includes(c.status);
-    return true;
-  });
+  const isPastFilter = filter === 'past';
+  const sourceRows: Appointment[] = isPastFilter
+    ? PENDING_HISTORY
+    : appointments.filter((c) => {
+        if (filter === 'download') return c.status === 'facial';
+        if (filter === 'sign')     return c.status === 'authorized';
+        if (filter === 'completed') return ['signed', 'paper', 'cancelled', 'atendido'].includes(c.status);
+        return true;
+      });
 
-  // Summary card stats
-  const total     = appointments.length;
-  const pendFace  = appointments.filter(c => c.status === 'facial').length;
-  const authorized = appointments.filter(c => c.status === 'authorized').length;
-  const signed    = appointments.filter(c => c.status === 'signed' || c.status === 'paper').length;
-  const completed = appointments.filter(c => c.completed).length;
+  // Summary card stats (always from today's appointments)
+  const total      = appointments.length;
+  const pendFace   = appointments.filter((c) => c.status === 'facial').length;
+  const pendSign   = appointments.filter((c) => c.status === 'authorized').length;
+  const signed     = appointments.filter((c) => c.status === 'signed' || c.status === 'paper').length;
+  const attended   = appointments.filter((c) => c.status === 'atendido').length;
 
   const cards = [
-    { label:'Consultas de hoje',      value:total,      icon:'📅', tint:'#E7F1EE', accent:'#0E6B5B', sub:'importadas do FeeGow' },
-    { label:'Pend. reconhec. facial', value:pendFace,   icon:'👤', tint:'#FBF0DC', accent:'#8A5A12', sub:'aguardando paciente' },
-    { label:'Autorizadas',            value:authorized, icon:'✓',  tint:'#DDEEF9', accent:'#1E6EA7', sub:'prontas para assinar' },
-    { label:'Assinadas',              value:signed,     icon:'✍️', tint:'#E3F2E8', accent:'#1D6B3C', sub:'assinatura coletada' },
-    { label:'Realizadas',             value:completed,  icon:'🩺', tint:'#EAF3F0', accent:'#0E6B5B', sub:'consulta confirmada' },
+    { label:'Consultas de hoje',      value:total,    icon:'📅', tint:'#E7F1EE', accent:'#0E6B5B', sub:'importadas do FeeGow' },
+    { label:'Pend. reconhec. facial', value:pendFace, icon:'👤', tint:'#FBF0DC', accent:'#8A5A12', sub:'aguardando paciente' },
+    { label:'Pendente Assinatura',    value:pendSign, icon:'✓',  tint:'#DDEEF9', accent:'#1E6EA7', sub:'prontas para assinar' },
+    { label:'Assinadas',              value:signed,   icon:'✍️', tint:'#E3F2E8', accent:'#1D6B3C', sub:'assinatura coletada' },
+    { label:'Atendidas',              value:attended, icon:'🩺', tint:'#EAF3F0', accent:'#0E6B5B', sub:'consulta confirmada' },
   ];
 
   const filters: { key: Filter; label: string }[] = [
@@ -45,24 +57,28 @@ export default function Dashboard() {
     { key:'download',  label:'A baixar guia' },
     { key:'sign',      label:'P/ assinar' },
     { key:'completed', label:'Concluídas' },
+    { key:'past',      label:'Pendentes do Passado' },
   ];
 
   function handleDownload(c: Appointment) {
     if (!c.authorizationNumber) { showToast('Sem nº do pedido — aguarde a pré-autorização (Beth)'); return; }
     if (c.referral && c.referral.used >= c.referral.total && c.referral.total > 1) { showToast('Pacote de sessões esgotado — anexe um novo encaminhamento'); return; }
     patchAppointment(c.id, { status:'authorized' });
+    logAction(`Guia ${c.authorizationNumber} baixada do TopSaúde (${c.patient})`);
     showToast('Guia do pedido ' + c.authorizationNumber + ' baixada do TopSaúde — disponível para assinatura');
   }
 
   function handleCancel(c: Appointment) {
     patchAppointment(c.id, { status:'cancelled' });
-    showToast('Guia de ' + c.patient + ' cancelada — não comparecimento registrado');
+    logAction(`Guia de ${c.patient} cancelada`);
+    showToast('Guia de ' + c.patient + ' cancelada');
   }
 
   function saveAuthorizationNumber(id: number, patient: string, val: string) {
     const v = val.trim();
     if (!v) return;
     patchAppointment(id, { authorizationNumber: v, status:'facial' });
+    logAction(`Nº pedido ${v} vinculado a ${patient}`);
     showToast('Pedido ' + v + ' vinculado a ' + patient);
   }
 
@@ -134,7 +150,9 @@ export default function Dashboard() {
       <div style={{ background:'#FFFFFF', border:'1px solid #E5E3DD', borderRadius:14, overflow:'hidden' }}>
         {/* Table header bar */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 20px', borderBottom:'1px solid #EEEDE8', flexWrap:'wrap', gap:10 }}>
-          <div style={{ fontSize:16, fontWeight:800 }}>Consultas de hoje</div>
+          <div style={{ fontSize:16, fontWeight:800 }}>
+            {isPastFilter ? 'Pendentes dos últimos 30 dias' : 'Consultas de hoje'}
+          </div>
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
             {filters.map((f) => {
               const active = filter === f.key;
@@ -163,33 +181,65 @@ export default function Dashboard() {
           <div>GUIA</div><div>STATUS</div><div>REALIZADA</div><div></div>
         </div>
 
+        {/* Empty state */}
+        {sourceRows.length === 0 && (
+          <div style={{ padding:'36px 20px', textAlign:'center', color:'#9AA6A1', fontSize:14 }}>
+            {isPastFilter
+              ? 'Nenhuma consulta pendente nos últimos 30 dias.'
+              : 'Nenhuma consulta corresponde ao filtro selecionado.'}
+          </div>
+        )}
+
         {/* Rows */}
-        {visible.map((c) => {
+        {sourceRows.map((c) => {
           const referralExhausted = !!(c.referral && c.referral.total > 1 && c.referral.used >= c.referral.total);
           const canDownload = c.status === 'facial' && !!c.authorizationNumber && !referralExhausted;
-          const canSign = c.status === 'authorized';
-          const canCancel = !['signed', 'paper', 'cancelled'].includes(c.status) && !c.completed;
-          const hasPackage = !!(c.referral && c.referral.total > 1);
+          const canSign     = c.status === 'authorized';
+          const canCancel   = !['cancelled', 'atendido'].includes(c.status);
+          const hasPackage  = !!(c.referral && c.referral.total > 1);
+
+          // RN-05: same patient + same specialty in history within 30 days
+          const isDuplicate = !isPastFilter && HISTORY_PATIENT_SPECIALTY.has(`${c.patient}|${c.specialty}`);
+
+          // D-07: procedure code display
+          const codes = SPECIALTY_CODES[c.specialty];
+          const procedureCode = codes
+            ? (c.serviceType === 'Consulta' ? `CBO ${codes.cbo}` : `TUS ${codes.tus}`)
+            : null;
 
           return (
             <div
               key={c.id}
+              title={isDuplicate ? `⚠ ${c.patient} já teve consulta de ${c.specialty} nos últimos 30 dias` : undefined}
               style={{
                 display:'grid', gridTemplateColumns:GRID, gap:12,
                 padding:'13px 20px', alignItems:'center',
                 borderBottom:'1px solid #F3F2ED', fontSize:14,
                 opacity: c.status === 'cancelled' ? 0.55 : 1,
+                background: isDuplicate ? '#FFFBF2' : undefined,
                 cursor:'default',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#FAFAF7')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = isDuplicate ? '#FFF5E0' : '#FAFAF7')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = isDuplicate ? '#FFFBF2' : '')}
             >
               {/* Time */}
-              <div style={{ fontWeight:700, color:'#6B7A75' }}>{c.time}</div>
+              <div style={{ fontWeight:700, color:'#6B7A75' }}>
+                {isPastFilter && c.date ? (
+                  <>
+                    <div style={{ fontSize:11, color:'#B9C6C1', fontWeight:700 }}>{c.date}</div>
+                    <div>{c.time}</div>
+                  </>
+                ) : c.time}
+              </div>
 
               {/* Patient */}
               <div>
-                <div style={{ fontWeight:700 }}>{c.patient}</div>
+                <div style={{ fontWeight:700, display:'flex', alignItems:'center', gap:6 }}>
+                  {c.patient}
+                  {isDuplicate && (
+                    <span title={`${c.patient} já teve consulta de ${c.specialty} nos últimos 30 dias`} style={{ fontSize:13, cursor:'help' }}>⚠️</span>
+                  )}
+                </div>
                 <div style={{ fontSize:12, color:'#9AA6A1' }}>Unimed · {c.insuranceCard}</div>
               </div>
 
@@ -216,9 +266,12 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {/* Service type */}
+              {/* Service type + CBO/TUS + session package */}
               <div>
                 <div style={{ fontSize:13, color:'#6B7A75', fontWeight:600 }}>{c.serviceType}</div>
+                {procedureCode && (
+                  <div style={{ fontSize:11, color:'#9AA6A1', marginTop:1, fontVariantNumeric:'tabular-nums' }}>{procedureCode}</div>
+                )}
                 {hasPackage && (
                   <div style={{ fontSize:11.5, fontWeight:800, color: referralExhausted ? '#A33B2E' : '#0E6B5B', marginTop:2 }}>
                     Sessão {c.referral!.used} de {c.referral!.total}
@@ -229,9 +282,9 @@ export default function Dashboard() {
               {/* Status */}
               <div><StatusPill status={c.status} /></div>
 
-              {/* Completed */}
+              {/* Atendido */}
               <div>
-                {c.completed
+                {c.status === 'atendido'
                   ? <span style={{ fontSize:12, fontWeight:800, color:'#1D6B3C' }}>✓ Sim</span>
                   : <span style={{ fontSize:12, color:'#B9C6C1', fontWeight:700 }}>—</span>
                 }
@@ -272,7 +325,7 @@ export default function Dashboard() {
                 {canCancel && (
                   <button
                     onClick={() => handleCancel(c)}
-                    title="Não compareceu — cancelar pré-autorização"
+                    title="Cancelar guia"
                     style={{ width:32, height:32, border:'1px solid #E8D5D1', borderRadius:8, background:'#FFFFFF', color:'#A33B2E', fontSize:13, cursor:'pointer', flexShrink:0 }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = '#F7E4E1')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = '#FFFFFF')}
@@ -284,6 +337,12 @@ export default function Dashboard() {
             </div>
           );
         })}
+      </div>
+
+      {/* RN-05 legend */}
+      <div style={{ display:'flex', alignItems:'center', gap:10, fontSize:12.5, color:'#9AA6A1' }}>
+        <span style={{ background:'#FFFBF2', border:'1px solid #E0C97E', borderRadius:6, padding:'3px 9px', fontWeight:700, color:'#8A5A12', whiteSpace:'nowrap' }}>⚠️ fundo amarelo</span>
+        <span>= paciente com consulta da mesma especialidade nos últimos 30 dias (RN-05)</span>
       </div>
 
       <div style={{ fontSize:12.5, color:'#9AA6A1', lineHeight:1.5 }}>

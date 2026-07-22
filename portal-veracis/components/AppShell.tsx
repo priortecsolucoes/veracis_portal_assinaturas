@@ -7,6 +7,10 @@ import GuiaDetail from './GuiaDetail';
 import Relatorios from './Relatorios';
 import TiposConsulta from './TiposConsulta';
 import CompartilhamentoArquivos from './CompartilhamentoArquivos';
+import Usuarios from './Usuarios';
+import HistoricoAcoes from './HistoricoAcoes';
+import Configuracoes from './Configuracoes';
+import Grupos from './Grupos';
 
 export default function AppShell() {
   const { tab } = useStore();
@@ -20,6 +24,10 @@ export default function AppShell() {
         {tab === 'reports'   && <Relatorios />}
         {tab === 'types'     && <TiposConsulta />}
         {tab === 'files'     && <CompartilhamentoArquivos />}
+        {tab === 'users'     && <Usuarios />}
+        {tab === 'groups'    && <Grupos />}
+        {tab === 'history'   && <HistoricoAcoes />}
+        {tab === 'settings'  && <Configuracoes />}
       </div>
     </div>
   );

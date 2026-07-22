@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { useStore } from '@/lib/store';
 import type { Role } from '@/lib/types';
 
 export default function LoginPage() {
   const { loginRole, setLoginRole, login } = useStore();
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   const roles: { value: Role; label: string }[] = [
     { value: 'reception', label: 'Recepção' },
@@ -65,7 +67,7 @@ export default function LoginPage() {
               <input
                 type="email"
                 defaultValue={loginRole === 'reception' ? 'recepcao@clinicaveracis.com.br' : 'faturamento@clinicaveracis.com.br'}
-                style={{ width:'100%', padding:'13px 14px', border:'1px solid #D8D6CF', borderRadius:10, fontSize:15, fontFamily:'inherit', background:'#FFFFFF' }}
+                style={{ width:'100%', padding:'13px 14px', border:'1px solid #D8D6CF', borderRadius:10, fontSize:15, fontFamily:'inherit', background:'#FFFFFF', boxSizing:'border-box' }}
               />
             </div>
 
@@ -75,7 +77,7 @@ export default function LoginPage() {
               <input
                 type="password"
                 defaultValue="••••••••"
-                style={{ width:'100%', padding:'13px 14px', border:'1px solid #D8D6CF', borderRadius:10, fontSize:15, fontFamily:'inherit', background:'#FFFFFF' }}
+                style={{ width:'100%', padding:'13px 14px', border:'1px solid #D8D6CF', borderRadius:10, fontSize:15, fontFamily:'inherit', background:'#FFFFFF', boxSizing:'border-box' }}
               />
             </div>
 
@@ -89,11 +91,44 @@ export default function LoginPage() {
             </button>
 
             <div style={{ textAlign:'center', fontSize:13 }}>
-              <a href="#" onClick={(e) => e.preventDefault()} style={{ textDecoration:'none' }}>Esqueci minha senha</a>
+              <button
+                onClick={() => setShowForgotModal(true)}
+                style={{ background:'none', border:'none', color:'#0E6B5B', fontFamily:'inherit', fontSize:13, cursor:'pointer', textDecoration:'underline', padding:0 }}
+              >
+                Esqueci minha senha
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Forgot password modal */}
+      {showForgotModal && (
+        <div
+          style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(10,74,64,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowForgotModal(false); }}
+        >
+          <div style={{ background:'#FFFFFF', borderRadius:18, padding:'36px 40px', maxWidth:440, width:'100%', boxShadow:'0 24px 64px rgba(0,0,0,0.24)' }}>
+            <div style={{ fontSize:20, fontWeight:800, marginBottom:12 }}>Recuperação de senha</div>
+            <div style={{ fontSize:14, color:'#6B7A75', lineHeight:1.6, marginBottom:24 }}>
+              Para redefinir sua senha, entre em contato com o administrador do sistema:<br /><br />
+              <strong style={{ color:'#22302C' }}>Priortec Soluções em Tecnologia</strong><br />
+              <span>suporte@priortec.com.br</span>
+            </div>
+            <div style={{ background:'#FBF0DC', border:'1px solid #E0C97E', borderRadius:10, padding:'12px 16px', fontSize:13, color:'#8A5A12', marginBottom:24 }}>
+              Em produção, o link de recuperação será enviado automaticamente para o e-mail cadastrado.
+            </div>
+            <button
+              onClick={() => setShowForgotModal(false)}
+              style={{ width:'100%', padding:'13px 0', border:'none', borderRadius:10, background:'#0E6B5B', color:'#FFFFFF', fontSize:14, fontWeight:700, fontFamily:'inherit', cursor:'pointer' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#0A4A40')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#0E6B5B')}
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,10 +2,12 @@
 
 import { useRef, useEffect } from 'react';
 import { useStore } from '@/lib/store';
+import { MENU_TABS } from '@/lib/types';
 
 export default function Sidebar() {
   const {
     role, tab, setTab,
+    allowedTabs,
     logout,
     chat, chatBusy, addChatMessage, setChatBusy,
     showToast,
@@ -19,12 +21,7 @@ export default function Sidebar() {
   const userInitials = role === 'reception' ? 'RC' : 'FB';
   const userRoleLabel = role === 'reception' ? 'Recepção' : 'Faturamento — Beth';
 
-  const navItems = [
-    { icon:'⊞', label:'Início', tab:'dashboard' as const },
-    { icon:'☰', label:'Relatórios', tab:'reports' as const },
-    { icon:'📁', label:'Compartilhamento', tab:'files' as const },
-    ...(role === 'billing' ? [{ icon:'⚙', label:'Tipos de Consulta', tab:'types' as const }] : []),
-  ];
+  const navItems = MENU_TABS.filter((item) => allowedTabs.includes(item.tab));
 
   const scrollChat = () => {
     if (chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
@@ -34,10 +31,10 @@ export default function Sidebar() {
 
   function buildContext() {
     const today = appointments.map(c =>
-      [c.time, c.patient, c.doctor, c.specialty, c.serviceType, c.authorizationNumber || 'sem pedido', c.status, c.completed ? 'realizada' : 'não realizada'].join(';')
+      [c.time, c.patient, c.doctor, c.specialty, c.serviceType, c.authorizationNumber || 'sem pedido', c.status].join(';')
     ).join('\n');
 
-    return `Você é a Vera, assistente de dados do Portal de Assinatura de Guias da Clínica Veracis (Conceição do Mato Dentro, MG). Convênio: Unimed.\n\nResponda SEMPRE em português do Brasil, de forma curta e direta (poucas linhas), com números exatos calculados a partir dos dados abaixo. Sem markdown. Se a pergunta fugir dos dados da clínica, diga educadamente que só responde sobre os dados do portal.\n\nFluxo/status: facial = aguardando reconhecimento facial do paciente; authorized = guia baixada do TopSaúde, disponível para assinatura; signed = assinatura coletada; cancelled = paciente não compareceu.\n\nCONSULTAS DE HOJE (hora;paciente;profissional;especialidade;tipo;pedido;status;realizada):\n${today}`;
+    return `Você é a Vera, assistente de dados do Portal de Assinatura de Guias da Clínica Veracis (Conceição do Mato Dentro, MG). Convênio: Unimed.\n\nResponda SEMPRE em português do Brasil, de forma curta e direta (poucas linhas), com números exatos calculados a partir dos dados abaixo. Sem markdown. Se a pergunta fugir dos dados da clínica, diga educadamente que só responde sobre os dados do portal.\n\nFluxo/status: facial = aguardando reconhecimento facial; authorized = guia disponível para assinatura; signed = assinado digitalmente; paper = assinado em papel; atendido = consulta confirmada realizada; cancelled = cancelada.\n\nCONSULTAS DE HOJE (hora;paciente;profissional;especialidade;tipo;pedido;status):\n${today}`;
   }
 
   async function sendChat(text: string) {
