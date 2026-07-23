@@ -139,7 +139,7 @@ export default function GuiaDetail() {
               {[
                 ['Paciente',    c.patient],
                 ['Carteirinha', c.insuranceCard],
-                ['Nº do pedido', c.authorizationNumber || '—'],
+                [c.authType === 'token' ? 'Nº Token' : 'Nº do pedido', c.authorizationNumber || '—'],
                 ['Tipo de guia', c.serviceType],
               ].map(([label, value]) => (
                 <div key={label} style={{ display:'flex', justifyContent:'space-between', gap:10 }}>
@@ -204,9 +204,21 @@ export default function GuiaDetail() {
           {/* Download authorization */}
           {canDownload && (
             <div style={{ background:'#0A4A40', borderRadius:14, padding:'18px 20px', color:'#DFF1EA' }}>
-              <div style={{ fontSize:15, fontWeight:800, color:'#FFFFFF' }}>Baixar guia do TopSaúde</div>
-              <div style={{ fontSize:13, lineHeight:1.5, marginTop:6, opacity:0.8 }}>
-                Confirme que o paciente realizou o reconhecimento facial e clique para baixar a guia.
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <div style={{ fontSize:15, fontWeight:800, color:'#FFFFFF' }}>Baixar guia do TopSaúde</div>
+                <span style={{
+                  fontSize:11, fontWeight:800, padding:'3px 9px', borderRadius:5,
+                  background: c.authType === 'token' ? '#FBF0DC' : '#DDEEF9',
+                  color: c.authType === 'token' ? '#8A5A12' : '#1E6EA7',
+                }}>
+                  {c.authType === 'token' ? 'TOKEN' : 'PEDIDO'}
+                </span>
+              </div>
+              <div style={{ fontSize:13, lineHeight:1.5, marginTop:8, opacity:0.85 }}>
+                {c.authType === 'token'
+                  ? <>Confirme o facial e acesse <strong>Autorização → Pesquisar Token</strong> no TopSaúde.</>
+                  : <>Confirme o facial e acesse <strong>Autorização → Pesquisar Pedido</strong> no TopSaúde.</>
+                }
               </div>
               <button
                 onClick={handleDownload}
@@ -214,7 +226,7 @@ export default function GuiaDetail() {
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#175A8A')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '#1E6EA7')}
               >
-                Baixar guia — pedido {c.authorizationNumber} ↓
+                {c.authType === 'token' ? 'Baixar via Token' : 'Baixar via Pedido'} — {c.authorizationNumber} ↓
               </button>
             </div>
           )}

@@ -1,11 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { useStore } from '@/lib/store';
 import type { Filter, Appointment } from '@/lib/types';
 import StatusPill from './StatusPill';
 import { HISTORY, SPECIALTY_CODES } from '@/lib/mock-data';
 
-const GRID = '58px 1.25fr 1.1fr 118px 0.95fr 1.2fr 86px 168px';
+const GRID = '58px 1.25fr 1.1fr 148px 0.95fr 1.2fr 86px 168px';
 
 // Appointments from history that are still pending (Pendentes do Passado)
 const PENDING_HISTORY = HISTORY.filter((h) => h.status === 'facial' || h.status === 'authorized');
@@ -21,6 +22,14 @@ export default function Dashboard() {
     patchAppointment, selectAppointment,
     showToast, logAction, devicesOnline,
   } = useStore();
+
+  const [pendingAuthType, setPendingAuthType] = useState<Record<number, 'pedido' | 'token'>>({});
+  function getPendingAuthType(id: number): 'pedido' | 'token' {
+    return pendingAuthType[id] ?? 'pedido';
+  }
+  function setPendingType(id: number, t: 'pedido' | 'token') {
+    setPendingAuthType((prev) => ({ ...prev, [id]: t }));
+  }
 
   const peerOnline = devicesOnline >= 2;
 
@@ -77,9 +86,11 @@ export default function Dashboard() {
   function saveAuthorizationNumber(id: number, patient: string, val: string) {
     const v = val.trim();
     if (!v) return;
-    patchAppointment(id, { authorizationNumber: v, status:'facial' });
-    logAction(`Nº pedido ${v} vinculado a ${patient}`);
-    showToast('Pedido ' + v + ' vinculado a ' + patient);
+    const authType = getPendingAuthType(id);
+    patchAppointment(id, { authorizationNumber: v, authType, status:'facial' });
+    const label = authType === 'token' ? 'Token' : 'Nº pedido';
+    logAction(`${label} ${v} vinculado a ${patient}`);
+    showToast(`${label} ${v} vinculado a ${patient}`);
   }
 
   async function syncFeeGow() {
@@ -249,18 +260,50 @@ export default function Dashboard() {
                 <div style={{ fontSize:12, color:'#9AA6A1' }}>{c.specialty}</div>
               </div>
 
-              {/* Authorization number */}
+              {/* Authorization number / token */}
               <div>
                 {c.authorizationNumber ? (
-                  <div style={{ fontWeight:700, fontSize:13, color:'#22302C', fontVariantNumeric:'tabular-nums' }}>{c.authorizationNumber}</div>
+                  <div>
+                    <div style={{ fontWeight:700, fontSize:13, color:'#22302C', fontVariantNumeric:'tabular-nums' }}>{c.authorizationNumber}</div>
+                    <span style={{
+                      display:'inline-block', marginTop:3, fontSize:10, fontWeight:800,
+                      padding:'2px 7px', borderRadius:4,
+                      background: c.authType === 'token' ? '#FBF0DC' : '#DDEEF9',
+                      color: c.authType === 'token' ? '#8A5A12' : '#1E6EA7',
+                    }}>
+                      {c.authType === 'token' ? 'TOKEN' : 'PEDIDO'}
+                    </span>
+                  </div>
                 ) : c.status !== 'cancelled' ? (
-                  <input
-                    onKeyDown={(e) => { if (e.key === 'Enter') { saveAuthorizationNumber(c.id, c.patient, e.currentTarget.value); e.currentTarget.value = ''; } }}
-                    onBlur={(e) => { saveAuthorizationNumber(c.id, c.patient, e.currentTarget.value); }}
-                    placeholder="Digitar nº"
-                    title="Nº do pedido gerado na pré-autorização do TopSaúde — Enter para salvar"
-                    style={{ width:'100%', padding:'7px 9px', border:'1.5px dashed #C9A24B', borderRadius:8, fontSize:13, fontFamily:'inherit', background:'#FFFBF2', outline:'none' }}
-                  />
+                  <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                    <div style={{ display:'flex', borderRadius:6, overflow:'hidden', border:'1px solid #D8D6CF', alignSelf:'flex-start' }}>
+                      {(['pedido', 'token'] as const).map((t) => {
+                        const active = getPendingAuthType(c.id) === t;
+                        return (
+                          <button
+                            key={t}
+                            onClick={() => setPendingType(c.id, t)}
+                            style={{
+                              padding:'3px 9px', border:'none', fontSize:10, fontWeight:800,
+                              cursor:'pointer', fontFamily:'inherit',
+                              background: active ? (t === 'token' ? '#8A5A12' : '#1E6EA7') : '#FFFFFF',
+                              color: active ? '#FFFFFF' : '#9AA6A1',
+                              borderRight: t === 'pedido' ? '1px solid #D8D6CF' : 'none',
+                            }}
+                          >
+                            {t === 'pedido' ? 'PEDIDO' : 'TOKEN'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <input
+                      onKeyDown={(e) => { if (e.key === 'Enter') { saveAuthorizationNumber(c.id, c.patient, e.currentTarget.value); e.currentTarget.value = ''; } }}
+                      onBlur={(e) => { saveAuthorizationNumber(c.id, c.patient, e.currentTarget.value); }}
+                      placeholder={getPendingAuthType(c.id) === 'token' ? 'Digitar token' : 'Digitar nº'}
+                      title="Enter para salvar"
+                      style={{ width:'100%', padding:'6px 9px', border:'1.5px dashed #C9A24B', borderRadius:8, fontSize:13, fontFamily:'inherit', background:'#FFFBF2', outline:'none', boxSizing:'border-box' }}
+                    />
+                  </div>
                 ) : (
                   <span style={{ fontSize:12, color:'#B0873A', fontWeight:700, background:'#FBF0DC', padding:'4px 9px', borderRadius:999, whiteSpace:'nowrap' }}>aguarda pedido</span>
                 )}

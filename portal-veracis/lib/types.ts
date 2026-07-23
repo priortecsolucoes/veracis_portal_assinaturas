@@ -20,6 +20,7 @@ export interface Appointment {
   serviceType: 'Consulta' | 'Terapia' | 'Exame';
   requiresFacial: boolean;
   authorizationNumber: string | null;
+  authType: 'pedido' | 'token';
   status: Status;
   referral: Referral | null;
   date?: string; // for historical records
