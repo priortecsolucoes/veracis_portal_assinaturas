@@ -19,11 +19,12 @@ const HISTORY_PATIENT_SPECIALTY = new Set(
 export default function Dashboard() {
   const {
     appointments, filter, setFilter,
-    patchAppointment, selectAppointment,
+    patchAppointment, resetAppointment, selectAppointment,
     showToast, logAction, devicesOnline,
   } = useStore();
 
   const [pendingAuthType, setPendingAuthType] = useState<Record<number, 'pedido' | 'token'>>({});
+  const [confirmReset, setConfirmReset] = useState<number | null>(null);
   function getPendingAuthType(id: number): 'pedido' | 'token' {
     return pendingAuthType[id] ?? 'pedido';
   }
@@ -91,6 +92,11 @@ export default function Dashboard() {
     const label = authType === 'token' ? 'Token' : 'Nº pedido';
     logAction(`${label} ${v} vinculado a ${patient}`);
     showToast(`${label} ${v} vinculado a ${patient}`);
+  }
+
+  function handleReset(c: Appointment) {
+    resetAppointment(c.id);
+    showToast(`Consulta de ${c.patient} reiniciada — voltou ao estado inicial do FeeGow`);
   }
 
   async function syncFeeGow() {
@@ -207,6 +213,7 @@ export default function Dashboard() {
           const canDownload = c.status === 'facial' && !!c.authorizationNumber && !referralExhausted;
           const canSign     = c.status === 'authorized';
           const canCancel   = !['cancelled', 'atendido'].includes(c.status);
+          const canReset    = !['cancelled', 'atendido'].includes(c.status) && (c.authorizationNumber !== null || c.status !== 'facial');
           const hasPackage  = !!(c.referral && c.referral.total > 1);
 
           // RN-05: same patient + same specialty in history within 30 days
@@ -335,46 +342,77 @@ export default function Dashboard() {
 
               {/* Actions */}
               <div style={{ display:'flex', justifyContent:'flex-end', alignItems:'center', gap:6 }}>
-                {canDownload && (
-                  <button
-                    onClick={() => handleDownload(c)}
-                    title="Confirme que o paciente fez o reconhecimento facial e baixe a guia do TopSaúde"
-                    style={{ flex:'0 0 160px', width:160, minWidth:160, padding:'9px 0', border:'none', borderRadius:9, background:'#1E6EA7', color:'#FFFFFF', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#175A8A')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = '#1E6EA7')}
-                  >
-                    Baixar guia ↓
-                  </button>
-                )}
-                {canSign && (
-                  <button
-                    onClick={() => selectAppointment(c.id)}
-                    style={{ flex:'0 0 160px', width:160, minWidth:160, padding:'9px 0', border:'none', borderRadius:9, background:'#0E6B5B', color:'#FFFFFF', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#0A4A40')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = '#0E6B5B')}
-                  >
-                    Coletar assinatura
-                  </button>
-                )}
-                <button
-                  onClick={() => selectAppointment(c.id)}
-                  title="Ver detalhes da guia"
-                  style={{ width:32, height:32, border:'1px solid #D8D6CF', borderRadius:8, background:'#FFFFFF', color:'#6B7A75', fontSize:14, cursor:'pointer', flexShrink:0 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#F3F2ED')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '#FFFFFF')}
-                >
-                  👁
-                </button>
-                {canCancel && (
-                  <button
-                    onClick={() => handleCancel(c)}
-                    title="Cancelar guia"
-                    style={{ width:32, height:32, border:'1px solid #E8D5D1', borderRadius:8, background:'#FFFFFF', color:'#A33B2E', fontSize:13, cursor:'pointer', flexShrink:0 }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#F7E4E1')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = '#FFFFFF')}
-                  >
-                    ✕
-                  </button>
+                {confirmReset === c.id ? (
+                  <div style={{ display:'flex', alignItems:'center', gap:5, background:'#FFF5F4', border:'1px solid #E8D5D1', borderRadius:9, padding:'5px 10px' }}>
+                    <span style={{ fontSize:11, fontWeight:800, color:'#A33B2E', whiteSpace:'nowrap' }}>Reiniciar fluxo?</span>
+                    <button
+                      onClick={() => { handleReset(c); setConfirmReset(null); }}
+                      style={{ padding:'3px 9px', border:'none', borderRadius:6, background:'#A33B2E', color:'#FFFFFF', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}
+                    >
+                      Sim
+                    </button>
+                    <button
+                      onClick={() => setConfirmReset(null)}
+                      style={{ padding:'3px 9px', border:'1px solid #D8D6CF', borderRadius:6, background:'#FFFFFF', color:'#6B7A75', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}
+                    >
+                      Não
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {canDownload && (
+                      <button
+                        onClick={() => handleDownload(c)}
+                        title="Confirme que o paciente fez o reconhecimento facial e baixe a guia do TopSaúde"
+                        style={{ flex:'0 0 160px', width:160, minWidth:160, padding:'9px 0', border:'none', borderRadius:9, background:'#1E6EA7', color:'#FFFFFF', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#175A8A')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = '#1E6EA7')}
+                      >
+                        Baixar guia ↓
+                      </button>
+                    )}
+                    {canSign && (
+                      <button
+                        onClick={() => selectAppointment(c.id)}
+                        style={{ flex:'0 0 160px', width:160, minWidth:160, padding:'9px 0', border:'none', borderRadius:9, background:'#0E6B5B', color:'#FFFFFF', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#0A4A40')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = '#0E6B5B')}
+                      >
+                        Coletar assinatura
+                      </button>
+                    )}
+                    <button
+                      onClick={() => selectAppointment(c.id)}
+                      title="Ver detalhes da guia"
+                      style={{ width:32, height:32, border:'1px solid #D8D6CF', borderRadius:8, background:'#FFFFFF', color:'#6B7A75', fontSize:14, cursor:'pointer', flexShrink:0 }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#F3F2ED')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = '#FFFFFF')}
+                    >
+                      👁
+                    </button>
+                    {canReset && (
+                      <button
+                        onClick={() => setConfirmReset(c.id)}
+                        title="Reiniciar fluxo da consulta (limpa guia assinada, nº do pedido e assinatura)"
+                        style={{ width:32, height:32, border:'1px solid #D8D6CF', borderRadius:8, background:'#FFFFFF', color:'#6B7A75', fontSize:15, cursor:'pointer', flexShrink:0 }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#FBF0DC'; e.currentTarget.style.color = '#8A5A12'; e.currentTarget.style.borderColor = '#C9A24B'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#6B7A75'; e.currentTarget.style.borderColor = '#D8D6CF'; }}
+                      >
+                        ↺
+                      </button>
+                    )}
+                    {canCancel && (
+                      <button
+                        onClick={() => handleCancel(c)}
+                        title="Cancelar guia"
+                        style={{ width:32, height:32, border:'1px solid #E8D5D1', borderRadius:8, background:'#FFFFFF', color:'#A33B2E', fontSize:13, cursor:'pointer', flexShrink:0 }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#F7E4E1')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = '#FFFFFF')}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>

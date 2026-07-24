@@ -22,6 +22,7 @@ interface StoreState {
   filter: Filter;
   setFilter: (f: Filter) => void;
   patchAppointment: (id: number, patch: Partial<Appointment>) => void;
+  resetAppointment: (id: number) => void;
 
   // Detail
   selectedId: number | null;
@@ -139,6 +140,21 @@ export const useStore = create<StoreState>((set, get) => ({
   setFilter: (f) => set({ filter: f }),
   patchAppointment: (id, patch) =>
     set((s) => ({ appointments: s.appointments.map((c) => (c.id === id ? { ...c, ...patch } : c)) })),
+  resetAppointment: (id) => {
+    const apt = get().appointments.find((c) => c.id === id);
+    if (!apt) return;
+    set((s) => {
+      const sigs = { ...s.signatures };
+      delete sigs[id];
+      return {
+        appointments: s.appointments.map((c) =>
+          c.id === id ? { ...c, status: 'facial', authorizationNumber: null, authType: 'pedido' } : c
+        ),
+        signatures: sigs,
+      };
+    });
+    get().logAction(`Fluxo da consulta de ${apt.patient} reiniciado — guia, nº do pedido e assinatura removidos`);
+  },
 
   selectedId: null,
   selectedRep: null,
